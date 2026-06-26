@@ -3,88 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitor Emergencia Venezuela</title>
+    <title>SismoVE - Monitor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <!-- Librerías para Exportar PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        #map { height: 400px; width: 100%; }
+        .map-container { height: 500px; width: 100%; border-radius: 0.5rem; overflow: hidden; border: 1px solid #e5e7eb; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .main-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
+        @media (max-width: 768px) { .main-layout { grid-template-columns: 1fr; } }
     </style>
 </head>
-<body class="bg-gray-50 h-screen flex flex-col">
+<body class="bg-gray-100 min-h-screen">
+
     <!-- Header -->
-    <header class="bg-slate-900 text-white p-4 flex justify-between items-center shadow-lg">
-        <h1 class="font-bold text-xl"><i class="fa-solid fa-satellite-dish mr-2 text-red-500"></i>DataMonitorVE</h1>
-        <nav class="space-x-4">
-            <button onclick="showTab('dashboard')" class="hover:text-red-400">Dashboard</button>
-            <button onclick="showTab('news')" class="hover:text-red-400">Noticias</button>
-        </nav>
-        <button onclick="toggleModal('modal-export')" class="bg-white text-black px-4 py-2 rounded font-bold text-sm">Exportar Reporte</button>
+    <header class="bg-slate-900 text-white p-4">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold flex items-center gap-2"><i class="fa-solid fa-satellite-dish text-red-500"></i> DataMonitorVE</h1>
+            <nav class="flex gap-4">
+                <a href="#" class="hover:text-red-400">Dashboard</a>
+                <a href="#" class="hover:text-red-400">Noticias</a>
+            </nav>
+        </div>
     </header>
 
-    <main class="flex-1 p-6 overflow-y-auto">
-        <!-- VISTA DASHBOARD (Activa por defecto) -->
-        <div id="view-dashboard" class="tab-content active space-y-6">
-            <section class="grid grid-cols-4 gap-4">
-                <div class="bg-white p-4 rounded shadow border-l-4 border-red-500">
-                    <p class="text-xs text-gray-500">Víctimas (Promedio)</p>
-                    <h2 class="text-2xl font-bold">920+</h2>
-                </div>
-                <!-- ... otras tarjetas ... -->
-            </section>
-            
-            <div id="map"></div>
+    <main class="max-w-7xl mx-auto p-4">
+        <!-- Estadísticas -->
+        <div class="stats-grid">
+            <div class="bg-white p-4 rounded-lg shadow border-l-4 border-red-500">
+                <p class="text-xs text-gray-500">Víctimas (Promedio)</p>
+                <h2 class="text-2xl font-bold">920+</h2>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow border-l-4 border-yellow-500">
+                <p class="text-xs text-gray-500">Heridos Estimados</p>
+                <h2 class="text-2xl font-bold">3,360</h2>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow border-l-4 border-slate-800">
+                <p class="text-xs text-gray-500">Edificios Colapsados</p>
+                <h2 class="text-2xl font-bold">250+</h2>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
+                <p class="text-xs text-gray-500">Equipos de Rescate</p>
+                <h2 class="text-2xl font-bold">17</h2>
+            </div>
         </div>
 
-        <!-- VISTA NOTICIAS -->
-        <div id="view-news" class="tab-content space-y-6">
-            <h2 class="text-xl font-bold">Resumen de Medios Oficiales</h2>
-            <!-- Aquí irán los links a instagram/tiktok verificados -->
+        <!-- Layout principal -->
+        <div class="main-layout">
+            <!-- Mapa -->
+            <div>
+                <div class="bg-white p-2 rounded-lg shadow mb-4">
+                    <div id="map" class="map-container"></div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h2 class="font-bold mb-4">Últimos Informes</h2>
+                <div id="feed-container" class="space-y-4">
+                    <!-- Contenido -->
+                    <div class="p-3 border-b border-gray-100">
+                        <h4 class="font-bold text-sm">Punto de Acopio - UCV</h4>
+                        <p class="text-xs text-gray-600">Plaza Rectorado UCV, Caracas</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 
-    <!-- Modal Exportar -->
-    <div id="modal-export" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center">
-        <div class="bg-white p-6 rounded shadow-xl w-96">
-            <h3 class="font-bold mb-4">Opciones de Exportación</h3>
-            <div class="space-y-2 mb-4">
-                <label><input type="checkbox" id="ex-stats"> Incluir Estadísticas</label><br>
-                <label><input type="checkbox" id="ex-desap"> Incluir Lista Desaparecidos</label><br>
-                <label><input type="checkbox" id="ex-map"> Incluir Capture Mapa</label>
-            </div>
-            <button onclick="generatePDF()" class="w-full bg-red-600 text-white p-2 rounded">Generar PDF</button>
-        </div>
-    </div>
-
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        function showTab(id) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.getElementById('view-' + id).classList.add('active');
-        }
-        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
-        
-        // Inicialización básica
-        const map = L.map('map').setView([10.48, -66.90], 6);
+        const map = L.map('map').setView([10.48, -66.90], 7);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-        async function generatePDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.text("Reporte SismoVE 2026", 10, 10);
-            
-            if(document.getElementById('ex-stats').checked) {
-                doc.text("Estadísticas: 920 Víctimas, 3360 Heridos.", 10, 20);
-            }
-            doc.save("Reporte_Emergencia.pdf");
-        }
+        
+        // Puntos de ejemplo
+        L.marker([10.48, -66.90]).addTo(map).bindPopup("Caracas: Centro de Acopio UCV");
+        L.marker([10.16, -68.00]).addTo(map).bindPopup("Valencia: Punto de recolección");
+        L.marker([10.06, -69.34]).addTo(map).bindPopup("Barquisimeto: Cáritas");
     </script>
 </body>
 </html>
