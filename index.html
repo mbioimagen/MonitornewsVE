@@ -1,117 +1,616 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DataMonitorVE | Emergencia Sismo 2026</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <style>
-        body { background-color: #f8fafc; }
-        .map-container { height: 500px; width: 100%; border-radius: 12px; overflow: hidden; background: #e2e8f0; }
-        .stat-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
-        .list-item { border-left: 4px solid #3b82f6; background: white; padding: 12px; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DataMonitorVE · Sala de Situación Sismo 2026</title>
+
+<!-- ====== Librerías CDN (all-in-one, sin build) ====== -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<style>
+  /* ============================================================
+     SISTEMA DE DISEÑO — "Sala de Situación"
+     Paleta institucional sobria + datos en tipografía monoespaciada
+     ============================================================ */
+  :root{
+    --ink:        #14171c;
+    --ink-soft:   #4a5160;
+    --paper:      #eef1f4;
+    --card:       #ffffff;
+    --line:       #d8dde3;
+    --line-soft:  #e7ebef;
+    --header:     #11151c;
+    --header-2:   #1b212b;
+
+    --alert:      #d6233a;  /* Afectación / víctimas        */
+    --amber:      #d98300;  /* Centros de acopio            */
+    --blue:       #1f6feb;  /* Vías / información           */
+    --green:      #1a8a4a;  /* Operativo / rescate          */
+
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(16,22,30,.06), 0 1px 3px rgba(16,22,30,.05);
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:var(--sans);
+    color:var(--ink);
+    background:var(--paper);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.45;
+  }
+  a{ color:var(--blue); text-decoration:none; }
+  a:hover{ text-decoration:underline; }
+
+  /* ---------- Barra de estado superior ---------- */
+  .statusbar{
+    background:var(--header);
+    color:#aeb6c2;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.04em;
+    padding:6px 20px;
+    display:flex; gap:18px; align-items:center;
+    border-bottom:1px solid #0a0d12;
+  }
+  .live{ display:inline-flex; align-items:center; gap:7px; color:#e6eaf0; }
+  .pulse{
+    width:8px; height:8px; border-radius:50%; background:var(--alert);
+    box-shadow:0 0 0 0 rgba(214,35,58,.7);
+    animation:pulse 1.8s infinite;
+  }
+  @keyframes pulse{
+    0%{ box-shadow:0 0 0 0 rgba(214,35,58,.6);}
+    70%{ box-shadow:0 0 0 7px rgba(214,35,58,0);}
+    100%{ box-shadow:0 0 0 0 rgba(214,35,58,0);}
+  }
+  .statusbar .sep{ color:#3a424f; }
+
+  /* ---------- Cabecera ---------- */
+  header.masthead{
+    background:linear-gradient(180deg,var(--header) 0%, var(--header-2) 100%);
+    color:#fff;
+    padding:18px 20px;
+    border-bottom:3px solid var(--alert);
+  }
+  .masthead-inner{
+    max-width:1280px; margin:0 auto;
+    display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;
+  }
+  .brand{ display:flex; align-items:center; gap:13px; }
+  .brand .glyph{
+    width:42px; height:42px; flex:0 0 42px;
+    border:2px solid var(--alert); border-radius:9px;
+    display:grid; place-items:center;
+    font-family:var(--mono); font-weight:700; font-size:18px; color:#fff;
+    background:rgba(214,35,58,.12);
+  }
+  .brand h1{ font-size:19px; margin:0; font-weight:700; letter-spacing:-.01em; }
+  .brand .sub{
+    font-family:var(--mono); font-size:11px; color:#9aa3b1;
+    letter-spacing:.05em; text-transform:uppercase;
+  }
+  .btn-export{
+    background:var(--alert); color:#fff; border:0; cursor:pointer;
+    font-family:var(--mono); font-weight:600; font-size:13px; letter-spacing:.02em;
+    padding:11px 18px; border-radius:8px;
+    display:inline-flex; align-items:center; gap:9px;
+    transition:background .15s, transform .05s;
+  }
+  .btn-export:hover{ background:#b91c30; }
+  .btn-export:active{ transform:translateY(1px); }
+  .btn-export svg{ width:15px; height:15px; }
+
+  /* ---------- Layout principal ---------- */
+  main{ max-width:1280px; margin:0 auto; padding:22px 20px 60px; }
+
+  /* Estadísticas */
+  .stats{
+    display:grid; gap:14px;
+    grid-template-columns:repeat(4,1fr);
+    margin-bottom:20px;
+  }
+  .stat{
+    background:var(--card); border:1px solid var(--line);
+    border-radius:var(--radius); padding:16px 16px 14px;
+    box-shadow:var(--shadow); position:relative; overflow:hidden;
+  }
+  .stat::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--ink-soft); }
+  .stat.is-alert::before{ background:var(--alert); }
+  .stat.is-amber::before{ background:var(--amber); }
+  .stat.is-blue::before{  background:var(--blue);  }
+  .stat.is-green::before{ background:var(--green); }
+  .stat .label{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--ink-soft); font-weight:600;
+  }
+  .stat .value{
+    font-family:var(--mono); font-weight:700; font-size:34px;
+    line-height:1.05; margin:6px 0 2px; letter-spacing:-.02em;
+  }
+  .stat .src{ font-size:10.5px; color:#8a93a1; }
+
+  /* Grid mapa + panel */
+  .grid-main{
+    display:grid; gap:18px;
+    grid-template-columns:2fr 1fr;
+    align-items:start;
+  }
+  .panel{
+    background:var(--card); border:1px solid var(--line);
+    border-radius:var(--radius); box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .panel-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:13px 16px; border-bottom:1px solid var(--line-soft);
+  }
+  .panel-head h2{
+    font-size:13px; margin:0; font-weight:700; letter-spacing:.01em;
+    display:flex; align-items:center; gap:8px;
+  }
+  .panel-head h2 .tag{
+    font-family:var(--mono); font-size:10px; color:var(--ink-soft);
+    font-weight:500; border:1px solid var(--line); padding:2px 7px; border-radius:20px;
+  }
+
+  /* Filtros del mapa */
+  .filters{ display:flex; gap:7px; flex-wrap:wrap; }
+  .chip{
+    font-family:var(--mono); font-size:11px; font-weight:600;
+    border:1px solid var(--line); background:#fff; color:var(--ink-soft);
+    padding:6px 11px; border-radius:20px; cursor:pointer; user-select:none;
+    display:inline-flex; align-items:center; gap:7px; transition:all .12s;
+  }
+  .chip .dot{ width:9px; height:9px; border-radius:50%; }
+  .chip.t-alert .dot{ background:var(--alert); }
+  .chip.t-amber .dot{ background:var(--amber); }
+  .chip.t-blue  .dot{ background:var(--blue); }
+  .chip[aria-pressed="true"]{ color:var(--ink); border-color:var(--ink); background:#f4f6f8; }
+  .chip[aria-pressed="false"]{ opacity:.5; }
+
+  /* Mapa — altura fija, nunca colapsa ni se oculta */
+  #map{
+    height:520px; min-height:520px; width:100%;
+    background:#dfe4e9;
+  }
+
+  /* Panel de informes */
+  .feed{ padding:12px; display:flex; flex-direction:column; gap:10px; max-height:520px; overflow-y:auto; }
+  .report{
+    border:1px solid var(--line-soft); border-left:4px solid var(--blue);
+    border-radius:8px; padding:11px 13px; background:#fff;
+    transition:border-color .12s, box-shadow .12s;
+  }
+  .report:hover{ box-shadow:var(--shadow); }
+  .report.s-instagram{ border-left-color:#c13584; }
+  .report.s-tiktok{ border-left-color:#14161a; }
+  .report.s-web{ border-left-color:var(--blue); }
+  .report-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:5px; }
+  .badge{
+    font-family:var(--mono); font-size:9.5px; font-weight:600; letter-spacing:.04em;
+    text-transform:uppercase; padding:3px 8px; border-radius:5px;
+    display:inline-flex; align-items:center; gap:5px;
+  }
+  .badge.b-instagram{ background:#fbe9f3; color:#c13584; }
+  .badge.b-tiktok{ background:#e9eaec; color:#14161a; }
+  .badge.b-web{ background:#e7f0fe; color:var(--blue); }
+  .badge svg{ width:11px; height:11px; }
+  .report h4{ font-size:13.5px; margin:0 0 3px; font-weight:600; line-height:1.3; }
+  .report .meta{ font-family:var(--mono); font-size:10.5px; color:#8a93a1; }
+  .report .go{ font-family:var(--mono); font-size:11px; font-weight:600; }
+
+  /* ---------- Modal de exportación ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(10,13,18,.66);
+    display:none; align-items:center; justify-content:center; padding:18px; z-index:1000;
+    backdrop-filter:blur(2px);
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal{
+    background:var(--card); border-radius:14px; width:100%; max-width:480px;
+    box-shadow:0 18px 50px rgba(10,13,18,.4); overflow:hidden;
+  }
+  .modal-head{ padding:20px 22px 14px; border-bottom:1px solid var(--line-soft); }
+  .modal-head h3{ margin:0; font-size:17px; font-weight:700; }
+  .modal-head p{ margin:5px 0 0; font-size:12.5px; color:var(--ink-soft); }
+  .modal-body{ padding:18px 22px; display:flex; flex-direction:column; gap:4px; }
+  .opt{
+    display:flex; align-items:flex-start; gap:12px; padding:11px 12px;
+    border:1px solid var(--line-soft); border-radius:9px; cursor:pointer;
+    transition:border-color .12s, background .12s;
+  }
+  .opt:hover{ border-color:var(--line); background:#fafbfc; }
+  .opt input{ margin-top:2px; width:16px; height:16px; accent-color:var(--alert); cursor:pointer; }
+  .opt .opt-title{ font-size:13.5px; font-weight:600; }
+  .opt .opt-desc{ font-size:11.5px; color:var(--ink-soft); }
+  .modal-foot{ padding:8px 22px 22px; display:flex; flex-direction:column; gap:9px; }
+  .btn-primary{
+    width:100%; background:var(--alert); color:#fff; border:0; cursor:pointer;
+    font-family:var(--mono); font-weight:600; font-size:14px; letter-spacing:.02em;
+    padding:13px; border-radius:9px; display:inline-flex; justify-content:center; align-items:center; gap:9px;
+  }
+  .btn-primary:hover{ background:#b91c30; }
+  .btn-primary:disabled{ opacity:.6; cursor:wait; }
+  .btn-ghost{
+    width:100%; background:transparent; border:0; cursor:pointer;
+    color:var(--ink-soft); font-size:13px; font-weight:500; padding:6px;
+  }
+  .btn-ghost:hover{ color:var(--ink); }
+
+  footer.site-foot{
+    max-width:1280px; margin:0 auto; padding:0 20px 40px;
+    font-family:var(--mono); font-size:11px; color:#8a93a1; line-height:1.7;
+  }
+  footer.site-foot strong{ color:var(--ink-soft); }
+
+  /* ---------- Responsivo ---------- */
+  @media (max-width:920px){
+    .stats{ grid-template-columns:repeat(2,1fr); }
+    .grid-main{ grid-template-columns:1fr; }
+    .feed{ max-height:none; }
+  }
+  @media (max-width:520px){
+    .masthead-inner{ flex-direction:column; align-items:flex-start; }
+    .btn-export{ width:100%; justify-content:center; }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .pulse{ animation:none; }
+    *{ transition:none !important; }
+  }
+  /* Marcadores del mapa */
+  .pin{
+    width:18px; height:18px; border-radius:50% 50% 50% 0;
+    transform:rotate(-45deg); border:2px solid #fff;
+    box-shadow:0 1px 4px rgba(0,0,0,.4);
+  }
+  .pin.p-alert{ background:var(--alert); }
+  .pin.p-amber{ background:var(--amber); }
+  .pin.p-blue{  background:var(--blue); }
+</style>
 </head>
-<body class="font-sans text-slate-900">
 
-    <header class="bg-slate-900 text-white p-4 shadow-xl">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-bold"><i class="fa-solid fa-satellite-dish text-red-500 mr-2"></i>DataMonitorVE</h1>
-            <button onclick="document.getElementById('modal-export').classList.remove('hidden')" class="bg-red-600 hover:bg-red-700 px-6 py-2 rounded-lg font-bold">
-                <i class="fa-solid fa-download mr-2"></i>Exportar Reporte
-            </button>
+<body>
+
+  <!-- ============ Barra de estado ============ -->
+  <div class="statusbar">
+    <span class="live"><span class="pulse"></span> EN MONITOREO</span>
+    <span class="sep">│</span>
+    <span id="clock">--:--:-- VET</span>
+    <span class="sep">│</span>
+    <span>Agregador de fuentes verificadas · v1.0</span>
+  </div>
+
+  <!-- ============ Cabecera ============ -->
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div class="brand">
+        <div class="glyph">VE</div>
+        <div>
+          <h1>DataMonitorVE</h1>
+          <div class="sub">Sala de Situación · Emergencia Sismo 2026</div>
         </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto p-6 space-y-6">
-        <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="stat-card">
-                <p class="text-xs text-slate-500 uppercase font-bold">Víctimas (Promedio)</p>
-                <h2 class="text-3xl font-bold">920+</h2>
-                <p class="text-[10px] text-slate-400">Fuente: EFE / ONU / Aut. Locales</p>
-            </div>
-            <div class="stat-card">
-                <p class="text-xs text-slate-500 uppercase font-bold">Heridos</p>
-                <h2 class="text-3xl font-bold">3,360</h2>
-            </div>
-            <div class="stat-card border-l-4 border-red-500">
-                <p class="text-xs text-slate-500 uppercase font-bold">Edificios Colapsados</p>
-                <h2 class="text-3xl font-bold">250+</h2>
-            </div>
-            <div class="stat-card">
-                <p class="text-xs text-slate-500 uppercase font-bold">Rescate Internacional</p>
-                <h2 class="text-3xl font-bold">17</h2>
-            </div>
-        </section>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2">
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <h2 class="font-bold mb-4">Mapeo de Afectación</h2>
-                    <div id="map" class="map-container"></div>
-                </div>
-            </div>
-            <div class="space-y-4">
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <h2 class="font-bold mb-4">Fuentes Oficiales & Noticias</h2>
-                    <div id="feed" class="space-y-2">
-                        <!-- Items simulando fuentes -->
-                        <div class="list-item">
-                            <h4 class="font-bold text-sm">Réplica Sismo 5.2 - Funvisis</h4>
-                            <p class="text-xs text-slate-500">Reportado hace 10 min. <a href="#" class="text-blue-600 underline">Ir a fuente</a></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <div id="modal-export" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
-        <div class="bg-white p-8 rounded-2xl w-full max-w-lg">
-            <h2 class="text-xl font-bold mb-6">Configurar Reporte</h2>
-            <div class="space-y-4 mb-6">
-                <label class="flex items-center gap-3"><input type="checkbox" id="ex-stats" checked> Incluir Estadísticas Nacionales</label>
-                <label class="flex items-center gap-3"><input type="checkbox" id="ex-list" checked> Incluir Lista de Desaparecidos</label>
-                <label class="flex items-center gap-3"><input type="checkbox" id="ex-map"> Incluir Captura del Mapa</label>
-            </div>
-            <button onclick="generatePDF()" class="w-full bg-red-600 text-white py-3 rounded-xl font-bold mb-3">Generar PDF</button>
-            <button onclick="document.getElementById('modal-export').classList.add('hidden')" class="w-full text-slate-500">Cancelar</button>
-        </div>
+      </div>
+      <button class="btn-export" onclick="openModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar reporte
+      </button>
     </div>
+  </header>
 
-    <script>
-        const map = L.map('map').setView([10.48, -66.90], 7);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  <main>
+    <!-- ============ Estadísticas ============ -->
+    <section class="stats" id="stats" aria-label="Indicadores nacionales">
+      <!-- Render dinámico desde STATS[] -->
+    </section>
 
-        // Datos Mock (Aquí se conectaría con tu CSV o Google Sheets)
-        const reports = [
-            { title: "Punto de Acopio - UCV", loc: "Caracas", desc: "Abierto 24h", lat: 10.48, lng: -66.90 },
-            { title: "Derrumbe Estructural", loc: "La Guaira", desc: "Zona crítica", lat: 10.60, lng: -66.93 }
-        ];
+    <!-- ============ Mapa + Panel ============ -->
+    <div class="grid-main">
+      <!-- Mapa -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Mapeo de afectación <span class="tag">OSM · Funvisis</span></h2>
+          <div class="filters" id="filters" role="group" aria-label="Filtrar capas del mapa">
+            <button class="chip t-alert" data-layer="alert" aria-pressed="true"><span class="dot"></span>Afectación</button>
+            <button class="chip t-amber" data-layer="amber" aria-pressed="true"><span class="dot"></span>Centros de acopio</button>
+            <button class="chip t-blue"  data-layer="blue"  aria-pressed="true"><span class="dot"></span>Vías</button>
+          </div>
+        </div>
+        <div id="map"></div>
+      </section>
 
-        reports.forEach(r => L.marker([r.lat, r.lng]).addTo(map).bindPopup(r.title));
+      <!-- Panel de informes -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Últimos informes</h2>
+          <span class="tag" style="font-family:var(--mono);font-size:10px;color:var(--ink-soft);border:1px solid var(--line);padding:2px 7px;border-radius:20px;" id="feed-count">0</span>
+        </div>
+        <div class="feed" id="feed"><!-- Render dinámico desde REPORTS[] --></div>
+      </section>
+    </div>
+  </main>
 
-        async function generatePDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.text("Reporte Oficial - Emergencia Sismo 2026", 14, 20);
-            
-            if(document.getElementById('ex-stats').checked) {
-                doc.autoTable({ head: [['Métrica', 'Valor']], body: [['Víctimas', '920+'], ['Heridos', '3360']] });
-            }
-            if(document.getElementById('ex-list').checked) {
-                doc.text("Lista de Desaparecidos (Reporte Agregado)", 14, doc.lastAutoTable.finalY + 10);
-                doc.autoTable({ startY: doc.lastAutoTable.finalY + 15, head: [['Nombre', 'Ubicación']], body: [['Juan Pérez', 'Caracas'], ['María Rivas', 'La Guaira']] });
-            }
-            
-            doc.save("Reporte_Emergencia_SismoVE_2026.pdf");
-            document.getElementById('modal-export').classList.add('hidden');
-        }
-    </script>
+  <footer class="site-foot">
+    <strong>DataMonitorVE</strong> agrega y reordena información de fuentes públicas. Las cifras mostradas son <strong>preliminares y referenciales</strong>; verifique siempre contra el comunicado oficial original.<br />
+    Fuentes institucionales de referencia: ONU · Funvisis · Cruz Roja Venezolana · Protección Civil.
+  </footer>
+
+  <!-- ============ Modal de exportación ============ -->
+  <div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modal-title">Configurar reporte PDF</h3>
+        <p>Seleccione los bloques a incluir. Se genera un documento estructurado con fecha y pie institucional.</p>
+      </div>
+      <div class="modal-body">
+        <label class="opt">
+          <input type="checkbox" id="ex-stats" checked />
+          <span><span class="opt-title">Estadísticas nacionales</span><br /><span class="opt-desc">Tabla de víctimas, heridos, colapsos y rescate internacional.</span></span>
+        </label>
+        <label class="opt">
+          <input type="checkbox" id="ex-list" checked />
+          <span><span class="opt-title">Lista de personas reportadas como desaparecidas</span><br /><span class="opt-desc">Registro agregado (nombre y ubicación) desde el archivo de datos.</span></span>
+        </label>
+        <label class="opt">
+          <input type="checkbox" id="ex-map" />
+          <span><span class="opt-title">Captura del mapa</span><br /><span class="opt-desc">Imagen del estado actual del mapeo de afectación.</span></span>
+        </label>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-primary" id="btn-gen" onclick="generatePDF()">Generar PDF</button>
+        <button class="btn-ghost" onclick="closeModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ================================================================
+   1. DATOS  ·  PLACEHOLDER
+   Reemplace estos arreglos con sus fuentes verificadas.
+   Pueden cargarse desde un CSV / Google Sheets / API en lugar de
+   estar embebidos: basta con asignar el resultado a estas variables
+   y volver a llamar a render().
+   ================================================================ */
+
+const STATS = [
+  { label:"Víctimas (promedio)", value:"920+", src:"EFE / ONU / Aut. locales", tone:"alert" },
+  { label:"Heridos",             value:"3 360", src:"Cruz Roja",               tone:"" },
+  { label:"Edificios colapsados",value:"250+",  src:"Protección Civil",        tone:"amber" },
+  { label:"Rescate internacional",value:"17",   src:"Equipos desplegados",     tone:"green" },
+];
+
+// Capas del mapa. type: 'alert' (afectación) | 'amber' (acopio) | 'blue' (vías)
+const MAP_POINTS = [
+  { type:"alert", title:"Derrumbe estructural", loc:"La Guaira",  desc:"Zona crítica · evacuación activa", lat:10.60, lng:-66.93 },
+  { type:"alert", title:"Daño severo",          loc:"Caracas (centro)", desc:"Estructuras comprometidas",  lat:10.506, lng:-66.914 },
+  { type:"amber", title:"Punto de acopio · UCV",loc:"Caracas",    desc:"Operativo 24h · agua y víveres",  lat:10.491, lng:-66.892 },
+  { type:"amber", title:"Centro de acopio",     loc:"Maracay",    desc:"Recepción de insumos médicos",    lat:10.247, lng:-67.596 },
+  { type:"blue",  title:"Vía habilitada",       loc:"Autopista GMA", desc:"Tránsito restringido a emergencias", lat:10.55, lng:-66.95 },
+];
+
+// Insignia de fuente: 'instagram' | 'tiktok' | 'web'
+const REPORTS = [
+  { source:"web",       title:"Réplica de magnitud 5.2 registrada", meta:"Funvisis · hace 10 min",   url:"https://www.funvisis.gob.ve/" },
+  { source:"web",       title:"ONU activa corredor de ayuda humanitaria", meta:"Naciones Unidas · hace 38 min", url:"https://www.un.org/" },
+  { source:"instagram", title:"Voluntarios reportan acceso bloqueado en sector costero", meta:"@cuenta_verificada · hace 1 h", url:"https://www.instagram.com/" },
+  { source:"tiktok",    title:"Registro en video de daños en zona residencial", meta:"@usuario · hace 2 h", url:"https://www.tiktok.com/" },
+  { source:"web",       title:"Cruz Roja amplía puntos de atención", meta:"Cruz Roja Venezolana · hace 3 h", url:"https://www.cruzrojavenezolana.org/" },
+];
+
+// Lista agregada (placeholder). Conecte a su archivo/hoja de datos.
+const MISSING = [
+  { name:"Registro de ejemplo 1", loc:"Caracas" },
+  { name:"Registro de ejemplo 2", loc:"La Guaira" },
+  { name:"Registro de ejemplo 3", loc:"Maracay" },
+];
+
+/* ================================================================
+   2. RENDER DE INTERFAZ
+   ================================================================ */
+
+function render(){
+  // Estadísticas
+  document.getElementById("stats").innerHTML = STATS.map(s => `
+    <div class="stat ${s.tone ? "is-"+s.tone : ""}">
+      <div class="label">${s.label}</div>
+      <div class="value">${s.value}</div>
+      <div class="src">${s.src || ""}</div>
+    </div>`).join("");
+
+  // Informes
+  const icons = {
+    instagram:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
+    tiktok:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 3a5 5 0 0 0 5 5v3a8 8 0 0 1-5-1.7V16a6 6 0 1 1-6-6v3a3 3 0 1 0 3 3V3z"/></svg>',
+    web:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>'
+  };
+  const labels = { instagram:"Instagram", tiktok:"TikTok", web:"Web oficial" };
+  document.getElementById("feed").innerHTML = REPORTS.map(r => `
+    <div class="report s-${r.source}">
+      <div class="report-top">
+        <span class="badge b-${r.source}">${icons[r.source]} ${labels[r.source]}</span>
+      </div>
+      <h4>${r.title}</h4>
+      <div class="meta">${r.meta}</div>
+      <div style="margin-top:7px;">
+        <a class="go" href="${r.url}" target="_blank" rel="noopener noreferrer">Ir a la fuente →</a>
+      </div>
+    </div>`).join("");
+  document.getElementById("feed-count").textContent = REPORTS.length;
+}
+render();
+
+/* ================================================================
+   3. MAPA  ·  Leaflet + filtros por capa
+   ================================================================ */
+
+const map = L.map("map", { scrollWheelZoom:false }).setView([10.48, -66.90], 9);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  crossOrigin:true,              // habilita la captura del mapa para el PDF
+  attribution:"© OpenStreetMap",
+  maxZoom:18
+}).addTo(map);
+
+function pinIcon(type){
+  return L.divIcon({ className:"", html:`<div class="pin p-${type}"></div>`, iconSize:[18,18], iconAnchor:[9,18], popupAnchor:[0,-16] });
+}
+
+// Capas separadas para poder filtrar
+const layers = { alert:L.layerGroup(), amber:L.layerGroup(), blue:L.layerGroup() };
+MAP_POINTS.forEach(p => {
+  L.marker([p.lat, p.lng], { icon:pinIcon(p.type) })
+    .bindPopup(`<strong>${p.title}</strong><br>${p.loc}<br><span style="color:#666">${p.desc}</span>`)
+    .addTo(layers[p.type]);
+});
+Object.values(layers).forEach(l => l.addTo(map));
+
+// Toggle de filtros
+document.querySelectorAll("#filters .chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    const key = chip.dataset.layer;
+    const on  = chip.getAttribute("aria-pressed") === "true";
+    chip.setAttribute("aria-pressed", String(!on));
+    if(on){ map.removeLayer(layers[key]); } else { layers[key].addTo(map); }
+  });
+});
+
+setTimeout(() => map.invalidateSize(), 200); // evita colapso de tiles al cargar
+
+/* ================================================================
+   4. RELOJ (hora Venezuela, UTC-4)
+   ================================================================ */
+function tick(){
+  const vet = new Date(Date.now() - (new Date().getTimezoneOffset()*60000) + (-4*3600000));
+  const hh = String(vet.getUTCHours()).padStart(2,"0");
+  const mm = String(vet.getUTCMinutes()).padStart(2,"0");
+  const ss = String(vet.getUTCSeconds()).padStart(2,"0");
+  document.getElementById("clock").textContent = `${hh}:${mm}:${ss} VET`;
+}
+tick(); setInterval(tick, 1000);
+
+/* ================================================================
+   5. MODAL
+   ================================================================ */
+function openModal(){ document.getElementById("modal").classList.add("open"); }
+function closeModal(){ document.getElementById("modal").classList.remove("open"); }
+document.getElementById("modal").addEventListener("click", e => { if(e.target.id === "modal") closeModal(); });
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeModal(); });
+
+/* ================================================================
+   6. EXPORTACIÓN PDF  ·  jsPDF + AutoTable
+   Documento estructurado: cabecera con logo, fecha, tablas reales
+   y pie institucional obligatorio en cada página.
+   ================================================================ */
+async function generatePDF(){
+  const btn = document.getElementById("btn-gen");
+  btn.disabled = true; btn.textContent = "Generando…";
+
+  try{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit:"pt", format:"a4" });
+    const W = doc.internal.pageSize.getWidth();
+    const now = new Date();
+    const fecha = now.toLocaleString("es-VE", { dateStyle:"long", timeStyle:"short" });
+
+    const ALERT=[214,35,58], INK=[20,23,28], SOFT=[120,128,140];
+
+    // ---- Cabecera del documento ----
+    function header(){
+      doc.setFillColor(...INK); doc.rect(0,0,W,70,"F");
+      doc.setDrawColor(...ALERT); doc.setLineWidth(3); doc.line(0,70,W,70);
+      // logo cuadrado "VE"
+      doc.setDrawColor(...ALERT); doc.setLineWidth(1.5); doc.roundedRect(40,18,34,34,5,5,"S");
+      doc.setTextColor(255); doc.setFont("courier","bold"); doc.setFontSize(15);
+      doc.text("VE", 57, 40, { align:"center" });
+      doc.setFont("helvetica","bold"); doc.setFontSize(15);
+      doc.text("DataMonitorVE — Reporte Oficial de Situación", 86, 33);
+      doc.setFont("courier","normal"); doc.setFontSize(8.5); doc.setTextColor(180,186,196);
+      doc.text("Emergencia Sismo 2026 · Documento generado automáticamente", 86, 47);
+      doc.text("Fecha de emisión: " + fecha, 86, 59);
+    }
+
+    // ---- Pie institucional obligatorio (todas las páginas) ----
+    function footer(){
+      const H = doc.internal.pageSize.getHeight();
+      doc.setDrawColor(216,221,227); doc.setLineWidth(.5); doc.line(40,H-46,W-40,H-46);
+      doc.setFont("courier","normal"); doc.setFontSize(7.5); doc.setTextColor(...SOFT);
+      doc.text("Fuentes institucionales: ONU · Funvisis · Cruz Roja Venezolana · Protección Civil.", 40, H-32);
+      doc.text("Cifras preliminares y referenciales — verificar contra el comunicado oficial original.", 40, H-22);
+      const pg = doc.internal.getNumberOfPages ? doc.internal.getCurrentPageInfo().pageNumber : 1;
+      doc.text("Pág. " + pg, W-40, H-22, { align:"right" });
+    }
+
+    let y = 92;
+    const opts = {
+      startY:0,
+      margin:{ top:88, bottom:60, left:40, right:40 },
+      styles:{ font:"helvetica", fontSize:9.5, cellPadding:6, lineColor:[224,228,233], lineWidth:.5 },
+      headStyles:{ fillColor:INK, textColor:255, font:"courier", fontStyle:"bold", fontSize:9 },
+      alternateRowStyles:{ fillColor:[245,247,249] },
+      didDrawPage: () => { header(); footer(); }
+    };
+
+    // ---- Bloque: estadísticas ----
+    if(document.getElementById("ex-stats").checked){
+      doc.autoTable({
+        ...opts,
+        startY:y,
+        head:[["Indicador nacional", "Valor", "Fuente"]],
+        body: STATS.map(s => [s.label, s.value, s.src || "—"]),
+      });
+      y = doc.lastAutoTable.finalY + 22;
+    }
+
+    // ---- Bloque: lista de desaparecidos ----
+    if(document.getElementById("ex-list").checked){
+      doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(...INK);
+      if(y > doc.internal.pageSize.getHeight()-140){ doc.addPage(); y = 92; }
+      doc.text("Personas reportadas como desaparecidas (registro agregado)", 40, y);
+      doc.autoTable({
+        ...opts,
+        startY:y + 8,
+        head:[["#", "Nombre", "Ubicación reportada"]],
+        body: MISSING.map((m,i) => [String(i+1), m.name, m.loc]),
+      });
+      y = doc.lastAutoTable.finalY + 22;
+    }
+
+    // ---- Bloque: captura del mapa ----
+    if(document.getElementById("ex-map").checked){
+      try{
+        const canvas = await html2canvas(document.getElementById("map"), { useCORS:true, allowTaint:false, scale:2 });
+        const img = canvas.toDataURL("image/png");
+        if(y > doc.internal.pageSize.getHeight()-260){ doc.addPage(); y = 92; }
+        doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(...INK);
+        doc.text("Estado del mapeo de afectación", 40, y);
+        const imgW = W - 80;
+        const imgH = canvas.height * (imgW / canvas.width);
+        doc.addImage(img, "PNG", 40, y + 10, imgW, Math.min(imgH, 300));
+      }catch(err){
+        doc.setFont("courier","normal"); doc.setFontSize(8.5); doc.setTextColor(...SOFT);
+        doc.text("No fue posible capturar el mapa (restricción de tiles).", 40, y + 14);
+      }
+    }
+
+    doc.save("Reporte_SismoVE_2026_" + now.toISOString().slice(0,10) + ".pdf");
+    closeModal();
+  }catch(err){
+    alert("Ocurrió un error al generar el PDF. Revise la consola.");
+    console.error(err);
+  }finally{
+    btn.disabled = false; btn.textContent = "Generar PDF";
+  }
+}
+</script>
 </body>
 </html>
