@@ -263,7 +263,7 @@
       <div class="modal-body">
         <label class="opt"><input type="checkbox" id="ex-stats" checked /><span><span class="opt-title">Estadísticas nacionales</span><br /><span class="opt-desc">Tabla con valor, fuente y si es promedio.</span></span></label>
         <label class="opt"><input type="checkbox" id="ex-quake" checked /><span><span class="opt-title">Última réplica registrada (USGS)</span><br /><span class="opt-desc">Magnitud, ubicación y hora del feed oficial.</span></span></label>
-        <label class="opt"><input type="checkbox" id="ex-list" checked /><span><span class="opt-title">Lista de personas reportadas como desaparecidas</span><br /><span class="opt-desc">Registro agregado (nombre y ubicación).</span></span></label>
+        <label class="opt"><input type="checkbox" id="ex-list" checked /><span><span class="opt-title">Estado del registro de desaparecidos</span><br /><span class="opt-desc">Cifra agregada citada + registros oficiales de búsqueda.</span></span></label>
         <label class="opt"><input type="checkbox" id="ex-map" /><span><span class="opt-title">Captura del mapa</span><br /><span class="opt-desc">Imagen del estado actual del mapeo.</span></span></label>
         <label class="opt"><input type="checkbox" id="ex-srcs" checked /><span><span class="opt-title">Fuentes y metodología</span><br /><span class="opt-desc">Origen de cada dato y cálculo de promedios.</span></span></label>
         <label class="opt"><input type="checkbox" id="ex-donate" checked /><span><span class="opt-title">Canales de donación seguros</span><br /><span class="opt-desc">Organizaciones citadas desde donarseguro.com.</span></span></label>
@@ -356,10 +356,15 @@ const AID = [
   { source:"web", title:"Canales de donación verificados para víctimas", meta:"donarseguro.com", url:"https://donarseguro.com/" },
 ];
 
-const MISSING = [
-  { name:"Registro de ejemplo 1", loc:"Caracas" },
-  { name:"Registro de ejemplo 2", loc:"La Guaira" },
-  { name:"Registro de ejemplo 3", loc:"Maracay" },
+// Desaparecidos: NO se inventan ni raspan nombres de personas reales.
+// Se reporta el dato agregado verificado y se deriva a los registros
+// oficiales de búsqueda (por nombre/cédula).
+const MISSING_SUMMARY = {
+  desaparecidos:157, atrapados:200, asOf:"25 jun 2026", source:"CNN",
+};
+const MISSING_REGISTRIES = [
+  { name:"Desaparecidos Terremoto VE", note:"Directorio de búsqueda por nombre/cédula/teléfono.", url:"https://desaparecidosterremotovenezuela.com/" },
+  { name:"SOS Venezuela 2026", note:"Mapa colaborativo con buscador de personas y avisos en vivo.", url:"https://sosvenezuela2026.com/" },
 ];
 
 const SOURCES = [
@@ -630,8 +635,12 @@ async function generatePDF(){
       y = doc.lastAutoTable.finalY + 22;
     }
     if(document.getElementById("ex-list").checked){
-      title("Personas reportadas como desaparecidas (registro agregado)");
-      doc.autoTable({ ...opts, startY:y+6, head:[["#","Nombre","Ubicación reportada"]], body: MISSING.map((m,i)=>[String(i+1),m.name,m.loc]) });
+      title("Personas desaparecidas — estado del registro");
+      doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...INK);
+      const mtxt = doc.splitTextToSize(`Cifra agregada verificada: ${fmtNum(MISSING_SUMMARY.desaparecidos)} personas reportadas como desaparecidas y más de ${fmtNum(MISSING_SUMMARY.atrapados)} atrapadas bajo escombros (fuente: ${MISSING_SUMMARY.source}, corte: ${MISSING_SUMMARY.asOf}). Esta plataforma no publica un listado de nombres sin verificar. La búsqueda por nombre o cédula se realiza en los registros especializados:`, W-80);
+      doc.text(mtxt,40,y+8); y += 8 + mtxt.length*12 + 8;
+      doc.autoTable({ ...opts, startY:y, head:[["Registro de búsqueda","Cómo usarlo","Enlace"]],
+        body: MISSING_REGISTRIES.map(r => [ r.name, r.note, r.url ]) });
       y = doc.lastAutoTable.finalY + 22;
     }
     if(document.getElementById("ex-map").checked){
@@ -666,6 +675,7 @@ async function generatePDF(){
         head:[["Fuente","Tipo","Enlace"]],
         body: SOURCES.map(s => [ s.name, s.type, s.url ]),
         styles:{ ...opts.styles, fontSize:8.5 } });
+      y = doc.lastAutoTable.finalY + 22;
     }
 
     if(document.getElementById("ex-donate").checked){
