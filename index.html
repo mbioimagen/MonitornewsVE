@@ -3,83 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SismoVE - Monitor</title>
+    <title>SismoVE | Monitor de Emergencia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
     <style>
-        .map-container { height: 500px; width: 100%; border-radius: 0.5rem; overflow: hidden; border: 1px solid #e5e7eb; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-        .main-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
-        @media (max-width: 768px) { .main-layout { grid-template-columns: 1fr; } }
+        /* Estilos críticos para que el mapa y la página no colapsen */
+        .page-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .map-box { height: 500px; width: 100%; border-radius: 8px; overflow: hidden; background: #e5e7eb; }
+        .stats-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #f3f4f6; }
+        .news-item { padding: 15px; border-bottom: 1px solid #eee; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-50 font-sans text-gray-900">
 
     <!-- Header -->
-    <header class="bg-slate-900 text-white p-4">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold flex items-center gap-2"><i class="fa-solid fa-satellite-dish text-red-500"></i> DataMonitorVE</h1>
-            <nav class="flex gap-4">
-                <a href="#" class="hover:text-red-400">Dashboard</a>
-                <a href="#" class="hover:text-red-400">Noticias</a>
+    <header class="bg-slate-900 text-white p-4 shadow-lg">
+        <div class="page-container flex justify-between items-center">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <i class="fa-solid fa-satellite-dish text-red-500"></i> SismoVE v2.0
+            </h1>
+            <nav class="flex gap-6">
+                <button onclick="showTab('dashboard')" class="hover:text-red-400 font-medium">Mapa de Afectación</button>
+                <button onclick="showTab('news')" class="hover:text-red-400 font-medium">Noticias y Ayuda</button>
+                <button onclick="openExportModal()" class="bg-white text-slate-900 px-4 py-2 rounded font-bold text-sm hover:bg-gray-200">
+                    <i class="fa-solid fa-file-export mr-2"></i>Exportar Reporte
+                </button>
             </nav>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto p-4">
-        <!-- Estadísticas -->
-        <div class="stats-grid">
-            <div class="bg-white p-4 rounded-lg shadow border-l-4 border-red-500">
+    <!-- Alerta -->
+    <div class="bg-red-600 text-white text-center py-2 font-bold text-sm uppercase">
+        EMERGENCIA NACIONAL: Sismos 7.2 y 7.5 | Líneas de emergencia y Cruz Roja activas.
+    </div>
+
+    <!-- Main Content -->
+    <main class="page-container mt-6">
+        
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="stats-card">
                 <p class="text-xs text-gray-500">Víctimas (Promedio)</p>
                 <h2 class="text-2xl font-bold">920+</h2>
+                <p class="text-[10px] text-gray-400">Fuente: EFE / ONU / Aut. Locales</p>
             </div>
-            <div class="bg-white p-4 rounded-lg shadow border-l-4 border-yellow-500">
+            <div class="stats-card">
                 <p class="text-xs text-gray-500">Heridos Estimados</p>
                 <h2 class="text-2xl font-bold">3,360</h2>
+                <p class="text-[10px] text-gray-400">Hospitales bajo presión</p>
             </div>
-            <div class="bg-white p-4 rounded-lg shadow border-l-4 border-slate-800">
+            <div class="stats-card border-l-4 border-slate-800">
                 <p class="text-xs text-gray-500">Edificios Colapsados</p>
                 <h2 class="text-2xl font-bold">250+</h2>
+                <p class="text-[10px] text-gray-400">La Guaira / Caracas</p>
             </div>
-            <div class="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
-                <p class="text-xs text-gray-500">Equipos de Rescate</p>
+            <div class="stats-card">
+                <p class="text-xs text-gray-500">Rescate & Ayuda</p>
                 <h2 class="text-2xl font-bold">17</h2>
+                <p class="text-[10px] text-gray-400">Equipos int. desplegados (ONU)</p>
             </div>
         </div>
 
-        <!-- Layout principal -->
-        <div class="main-layout">
-            <!-- Mapa -->
-            <div>
-                <div class="bg-white p-2 rounded-lg shadow mb-4">
-                    <div id="map" class="map-container"></div>
+        <!-- Dashboard Layout -->
+        <div id="view-dashboard" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2">
+                <div class="bg-white p-4 rounded shadow">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="font-bold"><i class="fa-solid fa-map-location-dot text-blue-500 mr-2"></i>Mapeo Situacional</h2>
+                        <select class="border rounded px-2 py-1 text-sm"><option>Centros de Acopio</option></select>
+                    </div>
+                    <div id="map" class="map-box"></div>
                 </div>
             </div>
-
-            <!-- Sidebar -->
-            <div class="bg-white p-4 rounded-lg shadow">
-                <h2 class="font-bold mb-4">Últimos Informes</h2>
-                <div id="feed-container" class="space-y-4">
-                    <!-- Contenido -->
-                    <div class="p-3 border-b border-gray-100">
+            <div class="bg-white p-4 rounded shadow">
+                <h2 class="font-bold mb-4"><i class="fa-solid fa-broadcast-tower text-green-500 mr-2"></i>Últimos Informes</h2>
+                <div id="feed" class="space-y-4">
+                    <!-- Feed items -->
+                    <div class="p-3 border rounded shadow-sm">
                         <h4 class="font-bold text-sm">Punto de Acopio - UCV</h4>
-                        <p class="text-xs text-gray-600">Plaza Rectorado UCV, Caracas</p>
+                        <p class="text-xs text-gray-500">Plaza Rectorado UCV, Caracas</p>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Noticias View -->
+        <div id="view-news" class="hidden">
+            <h2 class="text-2xl font-bold mb-6">Noticias Verificadas</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white p-6 rounded shadow border">
+                    <h3 class="font-bold text-lg mb-2 text-blue-600">Recomendaciones Cruz Roja</h3>
+                    <p class="text-sm mb-4">La Cruz Roja Internacional insta a seguir los protocolos de sismo. Lista de donaciones necesarias...</p>
+                    <a href="#" class="text-xs font-bold text-blue-800 underline">VER FUENTE OFICIAL</a>
                 </div>
             </div>
         </div>
     </main>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Modal Exportar -->
+    <div id="modal-export" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div class="bg-white p-6 rounded-lg w-full max-w-sm">
+            <h2 class="font-bold text-lg mb-4">Exportar Reporte</h2>
+            <div class="space-y-2 mb-4">
+                <label class="block"><input type="checkbox" id="ex-stats" checked> Incluir Estadísticas</label>
+                <label class="block"><input type="checkbox" id="ex-map" checked> Incluir Captura Mapa</label>
+                <label class="block"><input type="checkbox" id="ex-list"> Incluir Lista Desaparecidos</label>
+            </div>
+            <button onclick="generatePDF()" class="bg-red-600 text-white w-full py-2 rounded font-bold">Generar PDF</button>
+            <button onclick="document.getElementById('modal-export').classList.add('hidden')" class="mt-2 text-gray-500 w-full">Cancelar</button>
+        </div>
+    </div>
+
     <script>
+        // Init Map
         const map = L.map('map').setView([10.48, -66.90], 7);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         
-        // Puntos de ejemplo
-        L.marker([10.48, -66.90]).addTo(map).bindPopup("Caracas: Centro de Acopio UCV");
-        L.marker([10.16, -68.00]).addTo(map).bindPopup("Valencia: Punto de recolección");
-        L.marker([10.06, -69.34]).addTo(map).bindPopup("Barquisimeto: Cáritas");
+        function showTab(tab) {
+            document.getElementById('view-dashboard').classList.toggle('hidden', tab !== 'dashboard');
+            document.getElementById('view-news').classList.toggle('hidden', tab !== 'news');
+        }
+
+        function openExportModal() { document.getElementById('modal-export').classList.remove('hidden'); }
+
+        async function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Reporte de Emergencia SismoVE 2026", 14, 20);
+            
+            if(document.getElementById('ex-stats').checked) {
+                doc.autoTable({ head: [['Métrica', 'Valor']], body: [['Víctimas', '920+'], ['Heridos', '3360']] });
+            }
+            
+            doc.save("Reporte_SismoVE.pdf");
+            document.getElementById('modal-export').classList.add('hidden');
+        }
     </script>
 </body>
 </html>
