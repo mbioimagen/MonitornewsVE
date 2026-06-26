@@ -3,144 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SismoVE | Monitor de Emergencia</title>
+    <title>DataMonitorVE | Emergencia Sismo 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-
     <style>
-        /* Estilos críticos para que el mapa y la página no colapsen */
-        .page-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .map-box { height: 500px; width: 100%; border-radius: 8px; overflow: hidden; background: #e5e7eb; }
-        .stats-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #f3f4f6; }
-        .news-item { padding: 15px; border-bottom: 1px solid #eee; }
+        body { background-color: #f8fafc; }
+        .map-container { height: 500px; width: 100%; border-radius: 12px; overflow: hidden; background: #e2e8f0; }
+        .stat-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        .list-item { border-left: 4px solid #3b82f6; background: white; padding: 12px; margin-bottom: 8px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
     </style>
 </head>
-<body class="bg-gray-50 font-sans text-gray-900">
+<body class="font-sans text-slate-900">
 
-    <!-- Header -->
-    <header class="bg-slate-900 text-white p-4 shadow-lg">
-        <div class="page-container flex justify-between items-center">
-            <h1 class="text-xl font-bold flex items-center gap-2">
-                <i class="fa-solid fa-satellite-dish text-red-500"></i> SismoVE v2.0
-            </h1>
-            <nav class="flex gap-6">
-                <button onclick="showTab('dashboard')" class="hover:text-red-400 font-medium">Mapa de Afectación</button>
-                <button onclick="showTab('news')" class="hover:text-red-400 font-medium">Noticias y Ayuda</button>
-                <button onclick="openExportModal()" class="bg-white text-slate-900 px-4 py-2 rounded font-bold text-sm hover:bg-gray-200">
-                    <i class="fa-solid fa-file-export mr-2"></i>Exportar Reporte
-                </button>
-            </nav>
+    <header class="bg-slate-900 text-white p-4 shadow-xl">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold"><i class="fa-solid fa-satellite-dish text-red-500 mr-2"></i>DataMonitorVE</h1>
+            <button onclick="document.getElementById('modal-export').classList.remove('hidden')" class="bg-red-600 hover:bg-red-700 px-6 py-2 rounded-lg font-bold">
+                <i class="fa-solid fa-download mr-2"></i>Exportar Reporte
+            </button>
         </div>
     </header>
 
-    <!-- Alerta -->
-    <div class="bg-red-600 text-white text-center py-2 font-bold text-sm uppercase">
-        EMERGENCIA NACIONAL: Sismos 7.2 y 7.5 | Líneas de emergencia y Cruz Roja activas.
-    </div>
+    <main class="max-w-7xl mx-auto p-6 space-y-6">
+        <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="stat-card">
+                <p class="text-xs text-slate-500 uppercase font-bold">Víctimas (Promedio)</p>
+                <h2 class="text-3xl font-bold">920+</h2>
+                <p class="text-[10px] text-slate-400">Fuente: EFE / ONU / Aut. Locales</p>
+            </div>
+            <div class="stat-card">
+                <p class="text-xs text-slate-500 uppercase font-bold">Heridos</p>
+                <h2 class="text-3xl font-bold">3,360</h2>
+            </div>
+            <div class="stat-card border-l-4 border-red-500">
+                <p class="text-xs text-slate-500 uppercase font-bold">Edificios Colapsados</p>
+                <h2 class="text-3xl font-bold">250+</h2>
+            </div>
+            <div class="stat-card">
+                <p class="text-xs text-slate-500 uppercase font-bold">Rescate Internacional</p>
+                <h2 class="text-3xl font-bold">17</h2>
+            </div>
+        </section>
 
-    <!-- Main Content -->
-    <main class="page-container mt-6">
-        
-        <!-- Stats Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div class="stats-card">
-                <p class="text-xs text-gray-500">Víctimas (Promedio)</p>
-                <h2 class="text-2xl font-bold">920+</h2>
-                <p class="text-[10px] text-gray-400">Fuente: EFE / ONU / Aut. Locales</p>
-            </div>
-            <div class="stats-card">
-                <p class="text-xs text-gray-500">Heridos Estimados</p>
-                <h2 class="text-2xl font-bold">3,360</h2>
-                <p class="text-[10px] text-gray-400">Hospitales bajo presión</p>
-            </div>
-            <div class="stats-card border-l-4 border-slate-800">
-                <p class="text-xs text-gray-500">Edificios Colapsados</p>
-                <h2 class="text-2xl font-bold">250+</h2>
-                <p class="text-[10px] text-gray-400">La Guaira / Caracas</p>
-            </div>
-            <div class="stats-card">
-                <p class="text-xs text-gray-500">Rescate & Ayuda</p>
-                <h2 class="text-2xl font-bold">17</h2>
-                <p class="text-[10px] text-gray-400">Equipos int. desplegados (ONU)</p>
-            </div>
-        </div>
-
-        <!-- Dashboard Layout -->
-        <div id="view-dashboard" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2">
-                <div class="bg-white p-4 rounded shadow">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="font-bold"><i class="fa-solid fa-map-location-dot text-blue-500 mr-2"></i>Mapeo Situacional</h2>
-                        <select class="border rounded px-2 py-1 text-sm"><option>Centros de Acopio</option></select>
-                    </div>
-                    <div id="map" class="map-box"></div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="font-bold mb-4">Mapeo de Afectación</h2>
+                    <div id="map" class="map-container"></div>
                 </div>
             </div>
-            <div class="bg-white p-4 rounded shadow">
-                <h2 class="font-bold mb-4"><i class="fa-solid fa-broadcast-tower text-green-500 mr-2"></i>Últimos Informes</h2>
-                <div id="feed" class="space-y-4">
-                    <!-- Feed items -->
-                    <div class="p-3 border rounded shadow-sm">
-                        <h4 class="font-bold text-sm">Punto de Acopio - UCV</h4>
-                        <p class="text-xs text-gray-500">Plaza Rectorado UCV, Caracas</p>
+            <div class="space-y-4">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="font-bold mb-4">Fuentes Oficiales & Noticias</h2>
+                    <div id="feed" class="space-y-2">
+                        <!-- Items simulando fuentes -->
+                        <div class="list-item">
+                            <h4 class="font-bold text-sm">Réplica Sismo 5.2 - Funvisis</h4>
+                            <p class="text-xs text-slate-500">Reportado hace 10 min. <a href="#" class="text-blue-600 underline">Ir a fuente</a></p>
+                        </div>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Noticias View -->
-        <div id="view-news" class="hidden">
-            <h2 class="text-2xl font-bold mb-6">Noticias Verificadas</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-white p-6 rounded shadow border">
-                    <h3 class="font-bold text-lg mb-2 text-blue-600">Recomendaciones Cruz Roja</h3>
-                    <p class="text-sm mb-4">La Cruz Roja Internacional insta a seguir los protocolos de sismo. Lista de donaciones necesarias...</p>
-                    <a href="#" class="text-xs font-bold text-blue-800 underline">VER FUENTE OFICIAL</a>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Modal Exportar -->
-    <div id="modal-export" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-        <div class="bg-white p-6 rounded-lg w-full max-w-sm">
-            <h2 class="font-bold text-lg mb-4">Exportar Reporte</h2>
-            <div class="space-y-2 mb-4">
-                <label class="block"><input type="checkbox" id="ex-stats" checked> Incluir Estadísticas</label>
-                <label class="block"><input type="checkbox" id="ex-map" checked> Incluir Captura Mapa</label>
-                <label class="block"><input type="checkbox" id="ex-list"> Incluir Lista Desaparecidos</label>
+    <div id="modal-export" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+        <div class="bg-white p-8 rounded-2xl w-full max-w-lg">
+            <h2 class="text-xl font-bold mb-6">Configurar Reporte</h2>
+            <div class="space-y-4 mb-6">
+                <label class="flex items-center gap-3"><input type="checkbox" id="ex-stats" checked> Incluir Estadísticas Nacionales</label>
+                <label class="flex items-center gap-3"><input type="checkbox" id="ex-list" checked> Incluir Lista de Desaparecidos</label>
+                <label class="flex items-center gap-3"><input type="checkbox" id="ex-map"> Incluir Captura del Mapa</label>
             </div>
-            <button onclick="generatePDF()" class="bg-red-600 text-white w-full py-2 rounded font-bold">Generar PDF</button>
-            <button onclick="document.getElementById('modal-export').classList.add('hidden')" class="mt-2 text-gray-500 w-full">Cancelar</button>
+            <button onclick="generatePDF()" class="w-full bg-red-600 text-white py-3 rounded-xl font-bold mb-3">Generar PDF</button>
+            <button onclick="document.getElementById('modal-export').classList.add('hidden')" class="w-full text-slate-500">Cancelar</button>
         </div>
     </div>
 
     <script>
-        // Init Map
         const map = L.map('map').setView([10.48, -66.90], 7);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        
-        function showTab(tab) {
-            document.getElementById('view-dashboard').classList.toggle('hidden', tab !== 'dashboard');
-            document.getElementById('view-news').classList.toggle('hidden', tab !== 'news');
-        }
 
-        function openExportModal() { document.getElementById('modal-export').classList.remove('hidden'); }
+        // Datos Mock (Aquí se conectaría con tu CSV o Google Sheets)
+        const reports = [
+            { title: "Punto de Acopio - UCV", loc: "Caracas", desc: "Abierto 24h", lat: 10.48, lng: -66.90 },
+            { title: "Derrumbe Estructural", loc: "La Guaira", desc: "Zona crítica", lat: 10.60, lng: -66.93 }
+        ];
+
+        reports.forEach(r => L.marker([r.lat, r.lng]).addTo(map).bindPopup(r.title));
 
         async function generatePDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.text("Reporte de Emergencia SismoVE 2026", 14, 20);
+            doc.text("Reporte Oficial - Emergencia Sismo 2026", 14, 20);
             
             if(document.getElementById('ex-stats').checked) {
                 doc.autoTable({ head: [['Métrica', 'Valor']], body: [['Víctimas', '920+'], ['Heridos', '3360']] });
             }
+            if(document.getElementById('ex-list').checked) {
+                doc.text("Lista de Desaparecidos (Reporte Agregado)", 14, doc.lastAutoTable.finalY + 10);
+                doc.autoTable({ startY: doc.lastAutoTable.finalY + 15, head: [['Nombre', 'Ubicación']], body: [['Juan Pérez', 'Caracas'], ['María Rivas', 'La Guaira']] });
+            }
             
-            doc.save("Reporte_SismoVE.pdf");
+            doc.save("Reporte_Emergencia_SismoVE_2026.pdf");
             document.getElementById('modal-export').classList.add('hidden');
         }
     </script>
