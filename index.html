@@ -320,13 +320,13 @@
 // la más reciente con su fuente y fecha). "asOf" documenta el corte.
 const STATS = [
   { key:"fallecidos", label:"Fallecidos", tone:"alert",
-    sources:[ {name:"Gobierno (VTV) vía RTVC/EFE", value:188} ], asOf:"25 jun 2026", note:"Progresión: 164 (24 jun) → 188 (25 jun)." },
+    sources:[ {name:"Gobierno vía ABC/Reuters/Univisión", value:920} ], asOf:"26 jun 2026", note:"Progresión: 164 (24 jun) → 188 (25 jun) → 920 (26 jun)." },
   { key:"heridos", label:"Heridos", tone:"",
-    sources:[ {name:"Gobierno (VTV) vía RTVC/EFE", value:1520} ], asOf:"25 jun 2026", note:"Progresión: 971 → 1.520." },
+    sources:[ {name:"Gobierno vía ABC/Reuters", value:3360} ], asOf:"26 jun 2026", note:"Progresión: 971 → 1.520 → 3.360." },
   { key:"desaparecidos", label:"Desaparecidos", tone:"amber",
-    sources:[ {name:"CNN", value:157} ], asOf:"25 jun 2026", note:"Además, +200 personas atrapadas bajo escombros (CNN)." },
+    sources:[ {name:"Registro colaborativo vía Reuters", value:50000} ], asOf:"26 jun 2026", note:"Cifra de un registro ciudadano/colaborativo, NO un conteo oficial confirmado. Además, cientos siguen atrapados bajo escombros." },
   { key:"edificaciones", label:"Edificaciones afectadas", tone:"green",
-    sources:[ {name:"D. Rodríguez / CNN", value:250} ], asOf:"25 jun 2026", note:"Colapsadas o dañadas. La Guaira, zona de desastre." },
+    sources:[ {name:"Reuters / CNN", value:250} ], asOf:"26 jun 2026", note:"Entre 100 y 250 edificios colapsados/dañados solo en La Guaira, el estado más afectado (zona de desastre)." },
 ];
 
 // Ubicaciones nombradas explícitamente por fuentes serias (con cita).
@@ -360,7 +360,8 @@ const AID = [
 // Se reporta el dato agregado verificado y se deriva a los registros
 // oficiales de búsqueda (por nombre/cédula).
 const MISSING_SUMMARY = {
-  desaparecidos:157, atrapados:200, asOf:"25 jun 2026", source:"CNN",
+  desaparecidos:50000, asOf:"26 jun 2026", source:"Reuters (registro colaborativo)",
+  note:"Cifra de un registro ciudadano/colaborativo, no un conteo oficial confirmado; cientos de personas siguen atrapadas bajo escombros.",
 };
 const MISSING_REGISTRIES = [
   { name:"Desaparecidos Terremoto VE", note:"Directorio de búsqueda por nombre/cédula/teléfono.", url:"https://desaparecidosterremotovenezuela.com/" },
@@ -527,11 +528,11 @@ async function fetchQuakes(){
 fetchQuakes();
 setInterval(fetchQuakes, 90000);
 
-/* 7. RELOJ */
+/* 7. RELOJ · hora de Venezuela (America/Caracas, UTC-4), fija
+   independientemente de dónde esté el usuario. */
 function tick(){
-  const vet = new Date(Date.now() - (new Date().getTimezoneOffset()*60000) + (-4*3600000));
-  const z = n => String(n).padStart(2,"0");
-  document.getElementById("clock").textContent = `${z(vet.getUTCHours())}:${z(vet.getUTCMinutes())}:${z(vet.getUTCSeconds())} VET`;
+  const t = new Date().toLocaleTimeString("es-VE", { timeZone:"America/Caracas", hour12:false });
+  document.getElementById("clock").textContent = t + " VET";
 }
 tick(); setInterval(tick,1000);
 
@@ -637,7 +638,7 @@ async function generatePDF(){
     if(document.getElementById("ex-list").checked){
       title("Personas desaparecidas — estado del registro");
       doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...INK);
-      const mtxt = doc.splitTextToSize(`Cifra agregada verificada: ${fmtNum(MISSING_SUMMARY.desaparecidos)} personas reportadas como desaparecidas y más de ${fmtNum(MISSING_SUMMARY.atrapados)} atrapadas bajo escombros (fuente: ${MISSING_SUMMARY.source}, corte: ${MISSING_SUMMARY.asOf}). Esta plataforma no publica un listado de nombres sin verificar. La búsqueda por nombre o cédula se realiza en los registros especializados:`, W-80);
+      const mtxt = doc.splitTextToSize(`Cifra agregada: ${fmtNum(MISSING_SUMMARY.desaparecidos)} personas reportadas como desaparecidas (fuente: ${MISSING_SUMMARY.source}, corte: ${MISSING_SUMMARY.asOf}). ${MISSING_SUMMARY.note} Esta plataforma no publica un listado de nombres sin verificar; la búsqueda por nombre o cédula se realiza en los registros especializados:`, W-80);
       doc.text(mtxt,40,y+8); y += 8 + mtxt.length*12 + 8;
       doc.autoTable({ ...opts, startY:y, head:[["Registro de búsqueda","Cómo usarlo","Enlace"]],
         body: MISSING_REGISTRIES.map(r => [ r.name, r.note, r.url ]) });
