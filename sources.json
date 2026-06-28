@@ -1,0 +1,58 @@
+{
+  "updatedAt": "2026-06-27T00:00:00Z",
+  "event": "Sismo doblete Venezuela 24-jun-2026 (M7,2 y M7,5, Yaracuy)",
+  "metrics": {
+    "fallecidos": {
+      "label": "Fallecidos",
+      "cumulative": true,
+      "sources": [
+        { "name": "Min. Salud (Venezuela)", "official": true,  "value": 235,  "url": "https://www.cnn.com/2026/06/24/weather/live-news/venezuela-earthquake-puerto-rico-tsunami", "updatedAt": "2026-06-25T23:00:00Z" },
+        { "name": "DW (Deutsche Welle)",     "official": false, "value": 589,  "url": "https://www.dw.com/es/", "updatedAt": "2026-06-26T12:00:00Z" },
+        { "name": "Asamblea Nacional (Venezuela)", "official": true, "value": 920, "url": "https://www.cnn.com/2026/06/26/world/live-news/venezuela-earthquake-hnk", "updatedAt": "2026-06-26T20:00:00Z" },
+        { "name": "Cadena SER (España)",      "official": false, "value": 1430, "url": "https://cadenaser.com/", "updatedAt": "2026-06-27T08:00:00Z" }
+      ]
+    },
+    "heridos": {
+      "label": "Heridos",
+      "cumulative": true,
+      "sources": [
+        { "name": "Asamblea Nacional (Venezuela)", "official": true,  "value": 3360, "url": "https://www.cnn.com/2026/06/26/world/live-news/venezuela-earthquake-hnk", "updatedAt": "2026-06-26T20:00:00Z" },
+        { "name": "Min. Salud (Venezuela)",        "official": true,  "value": 4300, "url": "https://www.cnn.com/2026/06/24/weather/live-news/venezuela-earthquake-puerto-rico-tsunami", "updatedAt": "2026-06-25T23:00:00Z" },
+        { "name": "Wikipedia (con fuentes)",       "official": false, "value": 4500, "url": "https://es.wikipedia.org/wiki/Terremotos_de_Venezuela_de_2026", "updatedAt": "2026-06-27T06:00:00Z" }
+      ]
+    },
+    "desaparecidos": {
+      "label": "Desaparecidos",
+      "cumulative": true,
+      "note": "Registros ciudadanos/colaborativos, NO conteo oficial.",
+      "sources": [
+        { "name": "Desaparecidos Terremoto VE (registro)", "official": false, "value": 52373, "url": "https://desaparecidosterremotovenezuela.com/", "updatedAt": "2026-06-26T21:00:00Z" },
+        { "name": "Base independiente La Guaira",          "official": false, "value": 11200, "url": "https://sosvenezuela2026.com/", "updatedAt": "2026-06-26T18:00:00Z" }
+      ]
+    },
+    "edificaciones": {
+      "label": "Edificaciones afectadas",
+      "cumulative": false,
+      "note": "Colapsadas o dañadas, principalmente en La Guaira.",
+      "sources": [
+        { "name": "ONU / OCHA",  "official": false, "value": 100, "url": "https://www.unocha.org/", "updatedAt": "2026-06-26T12:00:00Z" },
+        { "name": "Reuters",     "official": false, "value": 250, "url": "https://www.reuters.com/", "updatedAt": "2026-06-26T20:00:00Z" }
+      ]
+    }
+  },
+  "childProtection": {
+    "headline": "Alertas oficiales de protección de la infancia",
+    "framing": "No hay tráfico de niños confirmado por autoridades. Lo que existe son alertas de organismos serios sobre el RIESGO de separación familiar, trata y apropiación irregular, con llamados a activar salvaguardas. Se presenta como tal.",
+    "items": [
+      { "org": "UNICEF", "type": "Organismo ONU", "date": "2026-06-25",
+        "summary": "Estima 3,9 millones de niños, niñas y adolescentes en zonas afectadas; advierte que los desastres aumentan el riesgo de separación familiar y pide acompañamiento psicosocial y espacios seguros.",
+        "url": "https://www.unicef.org/lac/comunicados-prensa/miles-ninos-ninas-riesgo-tras-fuertes-terremotos-venezuela" },
+      { "org": "Cecodap", "type": "ONG de infancia (VE)", "date": "2026-06-26",
+        "summary": "Advierte que la urgencia no puede justificar procedimientos que aumenten el riesgo de desaparición, tráfico, trata o apropiación irregular de niños; pide suspender adopciones/separaciones definitivas mientras no se agote la localización de familiares.",
+        "url": "https://www.diariolasamericas.com/la-otra-emergencia-venezuela-reunir-los-ninos-sus-familiares-los-terremotos-n5397852" },
+      { "org": "Save the Children", "type": "ONG internacional", "date": "2026-06-26",
+        "summary": "Coincide con UNICEF: los desastres incrementan el riesgo de separación familiar; exige protocolos específicos para proteger a la infancia desde las primeras horas.",
+        "url": "https://www.savethechildren.org/" }
+    ]
+  }
+}
