@@ -57,7 +57,6 @@
   .quake-tag{ margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--violet); border:1px solid var(--violet); padding:3px 9px; border-radius:20px; }
 
   main{ max-width:1280px; margin:0 auto; padding:18px 20px 60px; }
-
   .stats{ display:grid; gap:14px; grid-template-columns:repeat(4,1fr); margin-bottom:18px; }
   .stat{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); position:relative; overflow:hidden; }
   .stat::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--ink-soft); }
@@ -92,7 +91,6 @@
   .chip[aria-pressed="false"]{ opacity:.5; }
 
   #map{ height:520px; min-height:520px; width:100%; background:#dfe4e9; }
-
   .feed{ padding:12px; display:flex; flex-direction:column; gap:10px; max-height:520px; overflow-y:auto; }
   .report{ border:1px solid var(--line-soft); border-left:4px solid var(--blue); border-radius:8px; padding:11px 13px; background:#fff; transition:box-shadow .12s; }
   .report:hover{ box-shadow:var(--shadow); }
@@ -155,7 +153,6 @@
 </head>
 
 <body>
-
   <div class="statusbar">
     <span class="live"><span class="pulse"></span> EN MONITOREO</span>
     <span class="sep">│</span>
@@ -207,7 +204,6 @@
 
   <main>
     <section class="stats" id="stats" aria-label="Indicadores nacionales"></section>
-
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" aria-selected="true"  data-tab="mapa">Mapa de afectación</button>
       <button class="tab" role="tab" aria-selected="false" data-tab="noticias">Noticias y ayudas <span class="tcount" id="t-news">0</span></button>
@@ -268,7 +264,6 @@
     <strong>DataMonitorVE</strong> agrega y reordena información de fuentes públicas con atribución. Las cifras son <strong>preliminares y referenciales</strong>; cuando provienen de varias fuentes se muestra un promedio identificando su origen. Verifique siempre contra el comunicado oficial.<br />
     Fuentes institucionales: ONU · Funvisis · USGS · Cruz Roja Venezolana · Protección Civil.
   </footer>
-
   <div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal">
       <div class="modal-head">
@@ -491,11 +486,11 @@ render();
 
 /* 3b. PROTECCIÓN INFANTIL (respaldo embebido; se sobrescribe si hay sources.json) */
 let CHILD = {
-  framing: "No hay tráfico de niños confirmado por autoridades. Existen alertas de organismos serios sobre el RIESGO de separación familiar, trata y apropiación irregular, con llamados a activar salvaguardas.",
+  framing: "Circulan reportes en redes sobre niños aislados en centros de asistencia. Oficialmente NO hay redes de secuestro confirmadas por autoridades, pero el riesgo de separación familiar y apropiación irregular en refugios es crítico. UNICEF y Cecodap monitorean la situación y exigen salvaguardas.",
   items: [
-    { org:"UNICEF", type:"Organismo ONU", summary:"Estima 3,9 millones de niños, niñas y adolescentes en zonas afectadas; advierte que los desastres aumentan el riesgo de separación familiar y pide acompañamiento psicosocial y espacios seguros.", url:"https://www.unicef.org/lac/comunicados-prensa/miles-ninos-ninas-riesgo-tras-fuertes-terremotos-venezuela" },
-    { org:"Cecodap", type:"ONG de infancia (VE)", summary:"La urgencia no puede justificar procedimientos que aumenten el riesgo de desaparición, tráfico, trata o apropiación irregular; pide suspender adopciones/separaciones definitivas mientras no se agote la localización de familiares.", url:"https://www.diariolasamericas.com/la-otra-emergencia-venezuela-reunir-los-ninos-sus-familiares-los-terremotos-n5397852" },
-    { org:"Save the Children", type:"ONG internacional", summary:"Coincide con UNICEF: los desastres incrementan el riesgo de separación familiar; exige protocolos específicos para proteger a la infancia desde las primeras horas.", url:"https://www.savethechildren.org/" }
+    { org:"UNICEF", type:"Investigación / ONU", summary:"Despliega equipos de protección en hospitales de La Guaira y refugios en Caracas para registrar a menores no acompañados, prevenir traslados irregulares y rastrear a sus familiares directos.", url:"https://www.unicef.org/" },
+    { org:"Cecodap", type:"ONG de infancia (VE)", summary:"Advierte sobre el peligro de las cadenas falsas de secuestro que generan pánico, pero exige a las autoridades resguardar la identidad de los niños en centros de salud y suspender cualquier proceso de adopción o custodia de emergencia.", url:"https://cecodap.org/" },
+    { org:"Cruz Roja Venezolana", type:"Restablecimiento de Contacto", summary:"Habilitó la línea oficial de Restablecimiento del Contacto Familiar (RCF) específica para reportar menores extraviados durante los colapsos o traslados médicos.", url:"https://www.cruzrojavenezolana.org/" }
   ]
 };
 function renderChild(){
@@ -773,8 +768,13 @@ async function generatePDF(){
 
     doc.save("Reporte_SismoVE_2026_"+now.toISOString().slice(0,10)+".pdf");
     closeModal();
-  }catch(err){ alert("Error al generar el PDF. Revise la consola."); console.error(err); }
-  finally{ btn.disabled=false; btn.textContent="Generar PDF"; }
+  }catch(err){ 
+    // Reemplazado alert por console.error y un mensaje en el botón para evitar bloqueos de UI
+    console.error("Error al generar el PDF: ", err); 
+    btn.textContent = "Error. Intente de nuevo";
+    setTimeout(() => { btn.textContent = "Generar PDF"; }, 3000);
+  }
+  finally{ btn.disabled=false; if(btn.textContent === "Generando…") btn.textContent="Generar PDF"; }
 }
 </script>
 </body>
