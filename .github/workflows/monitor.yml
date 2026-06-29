@@ -2,8 +2,8 @@ name: Monitor de Cifras SismoVE
 
 on:
   schedule:
-    - cron: '0 */4 * * *' # Se ejecuta cada 4 horas
-  workflow_dispatch:      # Permite ejecutarlo manualmente desde GitHub
+    - cron: '0 */4 * * *'
+  workflow_dispatch: 
 
 jobs:
   actualizar:
