@@ -1,1 +1,25 @@
+name: Monitor de Cifras SismoVE
 
+on:
+  schedule:
+    - cron: '0 */4 * * *' # Se ejecuta cada 4 horas
+  workflow_dispatch:      # Permite ejecutarlo manualmente desde GitHub
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install requests
+      - name: Run Monitor
+        env:
+          APPS_URL: ${{ secrets.APPS_URL }}
+          TOKEN_APPS: ${{ secrets.TOKEN_APPS }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: python actualizar_bot.py
