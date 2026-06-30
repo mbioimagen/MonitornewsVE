@@ -1,95 +1,66 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>DataMonitorVE · Sala de Situación Sismo 2026</title>
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
-
-<style>
-  :root{
-    --ink:#14171c; --ink-soft:#4a5160; --paper:#eef1f4; --card:#ffffff;
-    --line:#d8dde3; --alert:#d6233a; --blue:#1f6feb; --green:#1a8a4a; --violet:#6c4cd6;
-    --mono:"IBM Plex Mono",monospace; --sans:"Inter",sans-serif;
-  }
-  body{ font-family:var(--sans); background:var(--paper); margin:0; }
-  
-  /* Dropdown Styles */
-  .dropdown { position: relative; display: inline-block; }
-  .dropbtn { 
-    background:#6c4cd6; color:#fff; border:0; padding:11px 16px; border-radius:8px; 
-    font-family:var(--mono); font-weight:600; font-size:13px; cursor:pointer; 
-    display:flex; align-items:center; gap:8px; 
-  }
-  .dropdown-content {
-    display: none; position: absolute; background-color: #fff; min-width: 280px;
-    box-shadow: 0px 8px 16px rgba(0,0,0,0.2); border-radius: 8px; z-index: 1001;
-    padding: 10px; margin-top: 5px; right: 0; border: 1px solid var(--line);
-  }
-  .dropdown:hover .dropdown-content { display: block; }
-  .dropdown-item { display: block; padding: 10px; color: var(--ink); font-weight: 600; font-size: 13px; }
-  .dropdown-item:hover { background: var(--paper); border-radius: 4px; }
-  .credit { font-size: 10px; color: var(--ink-soft); margin-bottom: 8px; display: block; padding-left: 10px; font-style: italic; }
-
-  /* Layout Base */
-  .masthead{ background:#11151c; color:#fff; padding:18px 20px; border-bottom:3px solid var(--alert); }
-  .masthead-inner{ max-width:1280px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; }
-  .grid-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; max-width: 1280px; margin: 20px auto; padding: 0 20px; }
-  #map { height: 500px; background: #eee; border-radius: 8px; }
-  .panel { background: #fff; padding: 20px; border-radius: 8px; border: 1px solid var(--line); }
-  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; max-width: 1280px; margin: 20px auto; padding: 0 20px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataMonitorVE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        .dropdown:hover .dropdown-menu { display: block; }
+    </style>
 </head>
-<body>
+<body class="bg-gray-100 text-gray-900">
 
-  <header class="masthead">
-    <div class="masthead-inner">
-      <div class="brand"><h1>DataMonitorVE</h1></div>
-      <div class="head-actions">
-        
-        <!-- Botón Desplegable -->
-        <div class="dropdown">
-          <button class="dropbtn">Buscar desaparecidos ▾</button>
-          <div class="dropdown-content">
-            <a class="dropdown-item" href="https://tebusco.app/" target="_blank">1. Te Busco (App de búsqueda)</a>
-            <small class="credit">Creador: [Nombre Creador/Org]</small>
-            <a class="dropdown-item" href="https://red-de-esperanza-lime.vercel.app/" target="_blank">2. Red de Esperanza</a>
-            <small class="credit">Creador: [Nombre Creador/Org]</small>
-          </div>
+    <!-- Header -->
+    <header class="bg-[#14171c] text-white p-4">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">DataMonitorVE</h1>
+            <div class="flex gap-2">
+                <!-- Dropdown -->
+                <div class="relative group">
+                    <button class="bg-violet-600 px-4 py-2 rounded text-sm font-bold flex items-center gap-1 hover:bg-violet-700">
+                        Buscar desaparecidos ▾
+                    </button>
+                    <div class="absolute right-0 mt-2 w-64 bg-white text-gray-800 rounded shadow-lg hidden group-hover:block z-50 p-2">
+                        <div class="p-2 border-b">
+                            <a href="https://tebusco.app/" target="_blank" class="block font-bold text-sm">1. Te Busco</a>
+                            <p class="text-[10px] italic text-gray-500">Creador: [Nombre Creador]</p>
+                        </div>
+                        <div class="p-2">
+                            <a href="https://red-de-esperanza-lime.vercel.app/" target="_blank" class="block font-bold text-sm">2. Red de Esperanza</a>
+                            <p class="text-[10px] italic text-gray-500">Creador: [Nombre Creador]</p>
+                        </div>
+                    </div>
+                </div>
+                <button class="bg-white text-gray-900 px-4 py-2 rounded text-sm font-bold">Exportar Reporte</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto p-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Map Panel -->
+        <div class="md:col-span-2 bg-white p-6 rounded shadow-sm border border-gray-200">
+            <h2 class="text-lg font-bold mb-4">Mapeo de afectación</h2>
+            <div id="map" class="h-[400px] w-full bg-gray-200 rounded"></div>
         </div>
 
-        <button class="btn-method" onclick="alert('Funcionalidad de exportación activa')">Exportar Reporte</button>
-      </div>
-    </div>
-  </header>
+        <!-- Info Panel -->
+        <div class="bg-white p-6 rounded shadow-sm border border-gray-200">
+            <h2 class="text-lg font-bold mb-4">Protección Infantil</h2>
+            <p class="text-sm text-gray-600 leading-relaxed">
+                Alertas de organismos serios (UNICEF, Cecodap) sobre riesgo de separación familiar.
+            </p>
+        </div>
+    </main>
 
-  <section class="stat-grid" id="stats">
-    <!-- Aquí irían tus tarjetas de estadísticas -->
-  </section>
-
-  <main class="grid-layout">
-    <div class="panel">
-      <h2>Mapeo de afectación</h2>
-      <div id="map"></div>
-    </div>
-    <div class="panel">
-      <h2>Protección Infantil</h2>
-      <div id="child-content">
-         <p>Alertas de organismos serios (UNICEF, Cecodap) sobre riesgo de separación familiar.</p>
-      </div>
-    </div>
-  </main>
-
-<script>
-  // Inicialización simple del mapa
-  const map = L.map('map').setView([10.48, -66.86], 7);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
-</script>
+    <script>
+        const map = L.map('map').setView([10.48, -66.86], 7);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+    </script>
 </body>
 </html>
