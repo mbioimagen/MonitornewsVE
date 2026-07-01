@@ -174,28 +174,26 @@
         </div>
       </div>
       <div class="head-actions">
-       <div class="dropdown" style="position:relative;">
-  <button class="btn-method" onclick="toggleBuscar()" style="background:#6c4cd6;color:#fff;border:0;cursor:pointer;">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    Buscar desaparecidos
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;"><polyline points="6 9 12 15 18 9"/></svg>
-  </button>
-  <div id="buscar-menu" style="display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:1100;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(10,13,18,.25);width:300px;overflow:hidden;">
+     <div class="dropdown">
+        <button class="btn-method" style="background:#6c4cd6;color:#fff;border:0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Buscar desaparecidos ▾
+        </button>
+        <div class="dropdown-content">
+          <a href="https://tebusco.app/" target="_blank" rel="noopener">
+            <strong>1. Te Busco (App)</strong>
+            <span>Creador: Equipo TeBusco</span>
+          </a>
+          <a href="https://red-de-esperanza-lime.vercel.app/" target="_blank" rel="noopener">
+            <strong>2. Red de Esperanza</strong>
+            <span>Creador: [Nombre Creador/Org]</span>
+          </a>
+        </div>
+      </div>
+      <!-- ========================================== -->
 
-    <a href="https://tebusco.app/" target="_blank" rel="noopener" style="display:block;padding:13px 15px;border-bottom:1px solid var(--line-soft);text-decoration:none;">
-      <div style="font-weight:700;font-size:13.5px;color:var(--ink);">Te Busco ↗</div>
-      <div style="font-size:11px;color:var(--ink-soft);margin-top:2px;font-family:var(--mono);">tebusco.app · reportar y buscar familiares</div>
-      <div style="font-size:10.5px;color:#8a93a1;margin-top:5px;line-height:1.4;">Creador: <strong>COMPLETAR — nombre/organización del creador de tebusco.app</strong></div>
-    </a>
-
-    <a href="https://red-de-esperanza-lime.vercel.app/" target="_blank" rel="noopener" style="display:block;padding:13px 15px;text-decoration:none;">
-      <div style="font-weight:700;font-size:13.5px;color:var(--ink);">Red de Esperanza ↗</div>
-      <div style="font-size:11px;color:var(--ink-soft);margin-top:2px;font-family:var(--mono);">red-de-esperanza · búsqueda de personas</div>
-      <div style="font-size:10.5px;color:#8a93a1;margin-top:5px;line-height:1.4;">Creador: <strong>COMPLETAR — nombre/organización del creador de Red de Esperanza</strong></div>
-    </a>
-
-  </div>
-</div>
+      <button class="btn-method" id="btn-donate" onclick="openDonate()" style="background:var(--green);color:#fff;border:0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
         <button class="btn-method" id="btn-donate" onclick="openDonate()" style="background:var(--green);color:#fff;border:0;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
           Donar
