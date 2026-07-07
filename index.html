@@ -1,472 +1,821 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DataMonitorVE · Emergencia Nacional Sismo</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DataMonitorVE · Sala de Situación Sismo 2026</title>
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Leaflet CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <!-- Export PDF Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
-    <!-- Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: { dark: '#0f172a', primary: '#1e293b', alert: '#ef4444', amber: '#f59e0b', blue: '#3b82f6', green: '#10b981' }
-                    }
-                }
-            }
-        }
-    </script>
+<style>
+  :root{
+    --ink:#14171c; --ink-soft:#4a5160; --paper:#eef1f4; --card:#ffffff;
+    --line:#d8dde3; --line-soft:#e7ebef; --header:#11151c; --header-2:#1b212b;
+    --alert:#d6233a; --amber:#d98300; --blue:#1f6feb; --green:#1a8a4a; --violet:#6c4cd6;
+    --radius:10px; --shadow:0 1px 2px rgba(16,22,30,.06),0 1px 3px rgba(16,22,30,.05);
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ font-family:var(--sans); color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased; line-height:1.45; }
+  a{ color:var(--blue); text-decoration:none; }
+  a:hover{ text-decoration:underline; }
 
-    <style>
-        body { background-color: #f4f7f9; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        
-        /* Dropdown Estilos */
-        .dropdown { position: relative; display: inline-block; }
-        .dropdown-content {
-            display: none; position: absolute; right: 0; top: 100%;
-            background-color: #ffffff; min-width: 260px; text-align: left;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15); border-radius: 8px;
-            border: 1px solid #e2e8f0; z-index: 9999; margin-top: 8px;
-        }
-        .dropdown:hover .dropdown-content { display: block; animation: fadeIn 0.2s ease-in; }
-        .dropdown-content a {
-            padding: 12px 16px; display: block; border-bottom: 1px solid #f1f5f9;
-            color: #1e293b; text-decoration: none; transition: background 0.15s;
-        }
-        .dropdown-content a:hover { background-color: #f8fafc; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+  .statusbar{ background:var(--header); color:#aeb6c2; font-family:var(--mono); font-size:11px; letter-spacing:.04em; padding:6px 20px; display:flex; gap:18px; align-items:center; border-bottom:1px solid #0a0d12; flex-wrap:wrap; }
+  .live{ display:inline-flex; align-items:center; gap:7px; color:#e6eaf0; }
+  .pulse{ width:8px; height:8px; border-radius:50%; background:var(--alert); animation:pulse 1.8s infinite; }
+  @keyframes pulse{ 0%{ box-shadow:0 0 0 0 rgba(214,35,58,.6);} 70%{ box-shadow:0 0 0 7px rgba(214,35,58,0);} 100%{ box-shadow:0 0 0 0 rgba(214,35,58,0);} }
+  .statusbar .sep{ color:#3a424f; }
 
-        /* Mapa inquebrantable */
-        #map { min-height: 500px; height: 100%; width: 100%; border-radius: 0.5rem; z-index: 10; }
-        
-        /* Pulso de grabación */
-        .pulse-red { animation: pulse-red 2s infinite; }
-        @keyframes pulse-red { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
-    </style>
+  header.masthead{ background:linear-gradient(180deg,var(--header) 0%,var(--header-2) 100%); color:#fff; padding:18px 20px; border-bottom:3px solid var(--alert); }
+  .masthead-inner{ max-width:1280px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+  .brand{ display:flex; align-items:center; gap:13px; }
+  .brand .glyph{ width:42px; height:42px; flex:0 0 42px; border:2px solid var(--alert); border-radius:9px; display:grid; place-items:center; font-family:var(--mono); font-weight:700; font-size:18px; color:#fff; background:rgba(214,35,58,.12); }
+  .brand h1{ font-size:19px; margin:0; font-weight:700; letter-spacing:-.01em; }
+  .brand .sub{ font-family:var(--mono); font-size:11px; color:#9aa3b1; letter-spacing:.05em; text-transform:uppercase; }
+  .head-actions{ display:flex; gap:9px; flex-wrap:wrap; }
+  .btn-export,.btn-method{ border:0; cursor:pointer; font-family:var(--mono); font-weight:600; font-size:13px; letter-spacing:.02em; padding:11px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:9px; transition:background .15s,transform .05s; }
+  .btn-export{ background:var(--alert); color:#fff; } .btn-export:hover{ background:#b91c30; }
+  .btn-method{ background:rgba(255,255,255,.1); color:#e6eaf0; border:1px solid rgba(255,255,255,.18); } .btn-method:hover{ background:rgba(255,255,255,.18); }
+  .btn-export:active,.btn-method:active{ transform:translateY(1px); }
+  .btn-export svg,.btn-method svg{ width:15px; height:15px; }
+
+  /* Menú desplegable Buscar desaparecidos */
+  .dropdown{ position:relative; }
+  .dd-menu{ display:none; position:absolute; top:calc(100% + 6px); left:0; z-index:1100; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 12px 32px rgba(10,13,18,.25); width:300px; overflow:hidden; }
+  .dd-menu.open{ display:block; }
+  .dd-item{ display:block; padding:13px 15px; text-decoration:none; border-bottom:1px solid var(--line-soft); }
+  .dd-item:last-child{ border-bottom:0; }
+  .dd-item:hover{ background:#fafbfc; text-decoration:none; }
+  .dd-item .dd-title{ font-weight:700; font-size:13.5px; color:var(--ink); }
+  .dd-item .dd-url{ font-size:11px; color:var(--ink-soft); margin-top:2px; font-family:var(--mono); }
+  .dd-item .dd-creator{ font-size:10.5px; color:#8a93a1; margin-top:5px; line-height:1.4; }
+
+  .quake-banner{ max-width:1280px; margin:16px auto 0; padding:0 20px; }
+  .quake-inner{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--violet); border-radius:var(--radius); box-shadow:var(--shadow); padding:13px 16px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .quake-inner .qmag{ font-family:var(--mono); font-weight:700; font-size:26px; color:var(--violet); line-height:1; }
+  .quake-meta{ display:flex; flex-direction:column; gap:2px; }
+  .quake-meta .qt{ font-weight:600; font-size:13.5px; }
+  .quake-meta .qs{ font-family:var(--mono); font-size:11px; color:var(--ink-soft); }
+  .quake-tag{ margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--violet); border:1px solid var(--violet); padding:3px 9px; border-radius:20px; }
+
+  main{ max-width:1280px; margin:0 auto; padding:18px 20px 60px; }
+
+  .stats{ display:grid; gap:14px; grid-template-columns:repeat(4,1fr); margin-bottom:18px; }
+  .stat{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); position:relative; overflow:hidden; }
+  .stat::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--ink-soft); }
+  .stat.is-alert::before{ background:var(--alert); } .stat.is-amber::before{ background:var(--amber); }
+  .stat.is-blue::before{ background:var(--blue); } .stat.is-green::before{ background:var(--green); }
+  .stat .label{ font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); font-weight:600; }
+  .stat .value{ font-family:var(--mono); font-weight:700; font-size:32px; line-height:1.05; margin:6px 0 2px; letter-spacing:-.02em; }
+  .stat .src{ font-size:10.5px; color:#8a93a1; display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+  .stat .src .avg-pill{ font-family:var(--mono); font-size:9px; font-weight:600; color:var(--violet); background:#efeafb; padding:1px 6px; border-radius:10px; }
+  .stat .why{ font-family:var(--mono); font-size:10px; color:var(--blue); cursor:pointer; margin-top:5px; display:inline-block; }
+  .stat .why:hover{ text-decoration:underline; }
+  .stat.loading .value{ color:var(--line); }
+
+  .tabs{ display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:18px; flex-wrap:wrap; }
+  .tab{ font-family:var(--mono); font-size:12.5px; font-weight:600; color:var(--ink-soft); background:transparent; border:0; border-bottom:2px solid transparent; padding:11px 16px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; margin-bottom:-1px; }
+  .tab:hover{ color:var(--ink); }
+  .tab[aria-selected="true"]{ color:var(--ink); border-bottom-color:var(--alert); }
+  .tab .tcount{ font-size:10px; background:var(--line-soft); color:var(--ink-soft); padding:1px 7px; border-radius:10px; }
+  .tabpanel[hidden]{ display:none; }
+
+  .panel{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+  .panel-head{ display:flex; align-items:center; justify-content:space-between; padding:13px 16px; border-bottom:1px solid var(--line-soft); gap:10px; flex-wrap:wrap; }
+  .panel-head h2{ font-size:13px; margin:0; font-weight:700; display:flex; align-items:center; gap:8px; }
+  .tag{ font-family:var(--mono); font-size:10px; color:var(--ink-soft); font-weight:500; border:1px solid var(--line); padding:2px 7px; border-radius:20px; }
+
+  .grid-main{ display:grid; gap:18px; grid-template-columns:2fr 1fr; align-items:start; }
+  .filters{ display:flex; gap:7px; flex-wrap:wrap; }
+  .chip{ font-family:var(--mono); font-size:11px; font-weight:600; border:1px solid var(--line); background:#fff; color:var(--ink-soft); padding:6px 11px; border-radius:20px; cursor:pointer; user-select:none; display:inline-flex; align-items:center; gap:7px; transition:all .12s; }
+  .chip .dot{ width:9px; height:9px; border-radius:50%; }
+  .chip.t-alert .dot{ background:var(--alert); } .chip.t-amber .dot{ background:var(--amber); }
+  .chip.t-blue .dot{ background:var(--blue); } .chip.t-violet .dot{ background:var(--violet); }
+  .chip[aria-pressed="true"]{ color:var(--ink); border-color:var(--ink); background:#f4f6f8; }
+  .chip[aria-pressed="false"]{ opacity:.5; }
+
+  #map{ height:520px; min-height:520px; width:100%; background:#dfe4e9; }
+
+  .feed{ padding:12px; display:flex; flex-direction:column; gap:10px; max-height:520px; overflow-y:auto; }
+  .report{ border:1px solid var(--line-soft); border-left:4px solid var(--blue); border-radius:8px; padding:11px 13px; background:#fff; transition:box-shadow .12s; }
+  .report:hover{ box-shadow:var(--shadow); }
+  .report.s-instagram{ border-left-color:#c13584; } .report.s-tiktok{ border-left-color:#14161a; }
+  .report.s-web{ border-left-color:var(--blue); } .report.s-x{ border-left-color:#14161a; }
+  .report-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:5px; }
+  .badge{ font-family:var(--mono); font-size:9.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; padding:3px 8px; border-radius:5px; display:inline-flex; align-items:center; gap:5px; }
+  .badge.b-instagram{ background:#fbe9f3; color:#c13584; } .badge.b-tiktok{ background:#e9eaec; color:#14161a; }
+  .badge.b-web{ background:#e7f0fe; color:var(--blue); } .badge.b-x{ background:#e9eaec; color:#14161a; }
+  .badge svg{ width:11px; height:11px; }
+  .report h4{ font-size:13.5px; margin:0 0 3px; font-weight:600; line-height:1.3; }
+  .report .meta{ font-family:var(--mono); font-size:10.5px; color:#8a93a1; }
+  .report .go{ font-family:var(--mono); font-size:11px; font-weight:600; }
+
+  .src-grid{ padding:16px; display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); }
+  .src-card{ border:1px solid var(--line-soft); border-radius:9px; padding:13px; background:#fff; display:flex; flex-direction:column; gap:6px; }
+  .src-card .sc-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .src-card h4{ margin:0; font-size:13.5px; font-weight:700; }
+  .src-card .sc-type{ font-family:var(--mono); font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; padding:2px 7px; border-radius:5px; background:#eef1f4; color:var(--ink-soft); }
+  .src-card .sc-type.verif{ background:#e3f5ea; color:var(--green); }
+  .src-card .sc-desc{ font-size:11.5px; color:var(--ink-soft); }
+  .src-card .sc-link{ font-family:var(--mono); font-size:11px; font-weight:600; margin-top:2px; }
+  .section-note{ font-family:var(--mono); font-size:11px; color:var(--ink-soft); background:#f6f8fa; border:1px dashed var(--line); border-radius:8px; padding:10px 13px; margin:0 16px 12px; line-height:1.6; }
+
+  .modal-overlay{ position:fixed; inset:0; background:rgba(10,13,18,.66); display:none; align-items:center; justify-content:center; padding:18px; z-index:1000; backdrop-filter:blur(2px); }
+  .modal-overlay.open{ display:flex; }
+  .modal{ background:var(--card); border-radius:14px; width:100%; max-width:520px; box-shadow:0 18px 50px rgba(10,13,18,.4); overflow:hidden; max-height:88vh; display:flex; flex-direction:column; }
+  .modal-head{ padding:20px 22px 14px; border-bottom:1px solid var(--line-soft); }
+  .modal-head h3{ margin:0; font-size:17px; font-weight:700; }
+  .modal-head p{ margin:5px 0 0; font-size:12.5px; color:var(--ink-soft); }
+  .modal-body{ padding:18px 22px; overflow-y:auto; }
+  .opt{ display:flex; align-items:flex-start; gap:12px; padding:11px 12px; border:1px solid var(--line-soft); border-radius:9px; cursor:pointer; margin-bottom:6px; }
+  .opt:hover{ border-color:var(--line); background:#fafbfc; }
+  .opt input{ margin-top:2px; width:16px; height:16px; accent-color:var(--alert); cursor:pointer; }
+  .opt .opt-title{ font-size:13.5px; font-weight:600; }
+  .opt .opt-desc{ font-size:11.5px; color:var(--ink-soft); }
+  .modal-foot{ padding:14px 22px 22px; display:flex; flex-direction:column; gap:9px; border-top:1px solid var(--line-soft); }
+  .btn-primary{ width:100%; background:var(--alert); color:#fff; border:0; cursor:pointer; font-family:var(--mono); font-weight:600; font-size:14px; padding:13px; border-radius:9px; }
+  .btn-primary:hover{ background:#b91c30; } .btn-primary:disabled{ opacity:.6; cursor:wait; }
+  .btn-ghost{ width:100%; background:transparent; border:0; cursor:pointer; color:var(--ink-soft); font-size:13px; font-weight:500; padding:6px; }
+  .btn-ghost:hover{ color:var(--ink); }
+
+  .meth-block{ margin-bottom:18px; }
+  .meth-block h4{ font-size:13px; margin:0 0 7px; font-weight:700; }
+  .meth-row{ font-size:12.5px; color:var(--ink); border:1px solid var(--line-soft); border-radius:8px; padding:10px 12px; margin-bottom:7px; }
+  .meth-row .mr-label{ font-weight:600; }
+  .meth-row .mr-calc{ font-family:var(--mono); font-size:11px; color:var(--ink-soft); margin-top:4px; }
+  .meth-row .mr-srcs{ font-size:11px; color:var(--ink-soft); margin-top:4px; }
+
+  footer.site-foot{ max-width:1280px; margin:0 auto; padding:0 20px 40px; font-family:var(--mono); font-size:11px; color:#8a93a1; line-height:1.7; }
+  footer.site-foot strong{ color:var(--ink-soft); }
+
+  @media (max-width:920px){ .stats{ grid-template-columns:repeat(2,1fr);} .grid-main{ grid-template-columns:1fr;} .feed{ max-height:none;} }
+  @media (max-width:520px){ .masthead-inner{ flex-direction:column; align-items:flex-start;} .head-actions{ width:100%;} .btn-export,.btn-method{ flex:1; justify-content:center;} .dd-menu{ width:100%; } }
+  @media (prefers-reduced-motion:reduce){ .pulse{ animation:none;} *{ transition:none !important;} }
+  .pin{ width:18px; height:18px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.4); }
+  .pin.p-alert{ background:var(--alert); } .pin.p-amber{ background:var(--amber); }
+  .pin.p-blue{ background:var(--blue); } .pin.p-violet{ background:var(--violet); }
+</style>
 </head>
-<body class="text-gray-800 font-sans flex flex-col h-screen overflow-hidden">
 
-    <!-- BARRA DE ESTADO -->
-    <div class="bg-brand-dark text-gray-400 text-[11px] font-mono px-6 py-1.5 flex justify-between items-center border-b border-gray-800">
-        <div class="flex items-center gap-3">
-            <span class="flex items-center text-red-500 font-bold"><div class="w-2 h-2 bg-red-500 rounded-full mr-2 pulse-red"></div> EN MONITOREO ACTIVO</span>
-            <span>|</span>
-            <span id="clock">Actualizando...</span>
+<body>
+
+  <div class="statusbar">
+    <span class="live"><span class="pulse"></span> EN MONITOREO</span>
+    <span class="sep">│</span>
+    <span id="clock">--:--:-- VET</span>
+    <span class="sep">│</span>
+    <span>Agregador transparente · datos citados · v2.0</span>
+  </div>
+
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div class="brand">
+        <div class="glyph">VE</div>
+        <div>
+          <h1>DataMonitorVE</h1>
+          <div class="sub">Sala de Situación · Emergencia Sismo 2026</div>
         </div>
-        <div class="hidden md:block">Agregador de Datos Independiente · Julio 2026</div>
+      </div>
+      <div class="head-actions">
+
+        <div class="dropdown">
+          <button class="btn-method" onclick="toggleBuscar(event)" style="background:#6c4cd6;color:#fff;border:0;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Buscar desaparecidos
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px;"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dd-menu" id="buscar-menu">
+            <a class="dd-item" href="https://tebusco.app/" target="_blank" rel="noopener noreferrer">
+              <div class="dd-title">Te Busco ↗</div>
+              <div class="dd-url">tebusco.app · reportar y buscar familiares</div>
+              <div class="dd-creator">Creador: <strong>COMPLETAR — nombre/organización del creador de Te Busco</strong></div>
+            </a>
+            <a class="dd-item" href="https://red-de-esperanza-lime.vercel.app/" target="_blank" rel="noopener noreferrer">
+              <div class="dd-title">Red de Esperanza ↗</div>
+              <div class="dd-url">red-de-esperanza · búsqueda de personas</div>
+              <div class="dd-creator">Creador: <strong>COMPLETAR — nombre/organización del creador de Red de Esperanza</strong></div>
+            </a>
+          </div>
+        </div>
+
+        <button class="btn-method" id="btn-donate" onclick="openDonate()" style="background:var(--green);color:#fff;border:0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+          Donar
+        </button>
+        <button class="btn-method" onclick="openMeth()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          Metodología y fuentes
+        </button>
+        <button class="btn-export" onclick="openModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar reporte
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="quake-banner">
+    <div class="quake-inner">
+      <div class="qmag" id="q-mag">—</div>
+      <div class="quake-meta">
+        <div class="qt" id="q-title">Consultando réplicas en USGS…</div>
+        <div class="qs" id="q-sub">Zona Venezuela · feed oficial USGS (en vivo)</div>
+      </div>
+      <a class="quake-tag" id="q-link" href="https://earthquake.usgs.gov/earthquakes/map/" target="_blank" rel="noopener">Fuente: USGS ↗</a>
+    </div>
+  </div>
+
+  <main>
+    <section class="stats" id="stats" aria-label="Indicadores nacionales"></section>
+
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true"  data-tab="mapa">Mapa de afectación</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="noticias">Noticias y ayudas <span class="tcount" id="t-news">0</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="fuentes">Fuentes oficiales <span class="tcount" id="t-srcs">0</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="infancia">Protección infantil <span class="tcount" id="t-child">0</span></button>
     </div>
 
-    <!-- HEADER PRINCIPAL -->
-    <header class="bg-brand-primary text-white shadow-md z-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center flex-wrap gap-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-red-500/20 border border-red-500 rounded-lg flex items-center justify-center font-bold text-red-400">VE</div>
-                <div>
-                    <h1 class="font-bold text-xl leading-tight">DataMonitorVE</h1>
-                    <p class="text-xs text-gray-400 font-mono uppercase tracking-wider">Sala de Situación Independiente</p>
-                </div>
-            </div>
-            
-            <div class="flex gap-3 items-center">
-                <!-- Botón Donar (Restaurado a la cabecera) -->
-                <button onclick="toggleModal('modal-donate')" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center transition-colors shadow-sm">
-                    <i class="fa-solid fa-hand-holding-heart mr-2"></i> Apoyar (Donar)
-                </button>
-
-                <!-- Dropdown Buscar Personas -->
-                <div class="dropdown">
-                    <button class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center transition-colors shadow-sm">
-                        <i class="fa-solid fa-magnifying-glass mr-2"></i> Buscar Desaparecidos <i class="fa-solid fa-chevron-down ml-2 text-xs"></i>
-                    </button>
-                    <div class="dropdown-content">
-                        <a href="https://tebusco.app/" target="_blank">
-                            <strong class="block text-indigo-600 text-sm mb-0.5">1. Te Busco (App)</strong>
-                            <span class="text-xs text-gray-500">Base de datos ciudadana. Creador: Equipo TeBusco.</span>
-                        </a>
-                        <a href="https://desaparecidosterremotovenezuela.com/" target="_blank">
-                            <strong class="block text-indigo-600 text-sm mb-0.5">2. Directorio Nacional</strong>
-                            <span class="text-xs text-gray-500">Búsqueda por cédula/nombre. Creador: ONGs VE.</span>
-                        </a>
-                        <a href="https://red-de-esperanza-lime.vercel.app/" target="_blank" class="border-b-0">
-                            <strong class="block text-indigo-600 text-sm mb-0.5">3. Red de Esperanza</strong>
-                            <span class="text-xs text-gray-500">Conexión de familiares. Creador: Iniciativa Civil.</span>
-                        </a>
-                    </div>
-                </div>
-
-                <button onclick="toggleModal('modal-export')" class="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center transition-colors">
-                    <i class="fa-solid fa-file-pdf mr-2"></i> Exportar Reporte
-                </button>
-            </div>
+    <section class="tabpanel" id="panel-mapa" role="tabpanel">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Mapeo de afectación <span class="tag">OSM · Funvisis · USGS</span></h2>
+          <div class="filters" id="filters" role="group" aria-label="Filtrar capas">
+            <button class="chip t-alert"  data-layer="alert"  aria-pressed="true"><span class="dot"></span>Afectación</button>
+            <button class="chip t-amber"  data-layer="amber"  aria-pressed="true"><span class="dot"></span>Centros de acopio</button>
+            <button class="chip t-blue"   data-layer="blue"   aria-pressed="true"><span class="dot"></span>Vías</button>
+            <button class="chip t-violet" data-layer="violet" aria-pressed="true"><span class="dot"></span>Sismos (USGS)</button>
+          </div>
         </div>
-    </header>
+        <div id="map"></div>
+      </div>
+    </section>
 
-    <!-- CONTENIDO PRINCIPAL -->
-    <main class="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
-        <div class="max-w-7xl mx-auto space-y-6">
-
-            <!-- ALERTA INFANCIA (Fact Checking) -->
-            <div class="bg-blue-50 border-l-4 border-blue-500 rounded-r-lg p-4 flex items-start shadow-sm">
-                <i class="fa-solid fa-circle-info text-blue-500 text-xl mt-0.5 mr-3"></i>
-                <div>
-                    <h3 class="font-bold text-blue-900">Aclaratoria oficial sobre la situación de los niños (UNICEF / Cecodap)</h3>
-                    <p class="text-sm text-blue-800 mt-1" id="ui-child-framing">
-                        <strong>No hay redes de secuestro o tráfico confirmadas operando en hospitales.</strong> Las cadenas de WhatsApp generando pánico son falsas. Las alertas emitidas por ONGs advierten sobre el <em>riesgo estructural</em> de separaciones y apropiaciones irregulares (adopciones exprés) debido al caos, exigiendo salvaguardas legales, no reportando secuestros masivos.
-                    </p>
-                </div>
-            </div>
-
-            <!-- TARJETAS DE DATOS (El Contraste de la Realidad) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- Fallecidos -->
-                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
-                    <p class="text-xs font-bold text-gray-500 uppercase mb-1">Fallecidos Confirmados</p>
-                    <h2 class="text-3xl font-black text-gray-800" id="ui-fallecidos">3,535</h2>
-                    <p class="text-[10px] text-gray-500 mt-2"><span class="bg-red-100 text-red-700 px-1.5 py-0.5 rounded mr-1">OFICIAL</span> Autoridades / OCHA</p>
-                </div>
-
-                <!-- Desaparecidos (El problema real) -->
-                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
-                    <p class="text-xs font-bold text-gray-500 uppercase mb-1">Desaparecidos Reportados</p>
-                    <h2 class="text-3xl font-black text-gray-800" id="ui-desaparecidos">+50,000</h2>
-                    <p class="text-[10px] text-gray-500 mt-2"><span class="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded mr-1">CIUDADANO</span> Registros sin localizar. Brecha crítica.</p>
-                </div>
-
-                <!-- Heridos -->
-                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-1 h-full bg-orange-400"></div>
-                    <p class="text-xs font-bold text-gray-500 uppercase mb-1">Heridos Atendidos</p>
-                    <h2 class="text-3xl font-black text-gray-800" id="ui-heridos">16,740</h2>
-                    <p class="text-[10px] text-gray-500 mt-2"><span class="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded mr-1">ESTIMADO</span> Hospitales y centros de triaje</p>
-                </div>
-
-                <!-- Afectados/Refugios -->
-                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
-                    <p class="text-xs font-bold text-gray-500 uppercase mb-1">Personas sin Hogar</p>
-                    <h2 class="text-3xl font-black text-gray-800" id="ui-hogar">17,854</h2>
-                    <p class="text-[10px] text-gray-500 mt-2"><span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded mr-1">VERIFICADO</span> Damnificados en refugios temporales</p>
-                </div>
-            </div>
-
-            <!-- GRID PRINCIPAL (Mapa y Feed) -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                <!-- COLUMNA MAPA (Ocupa 2 espacios) -->
-                <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col">
-                    <div class="p-4 border-b border-gray-100 flex justify-between items-center">
-                        <h2 class="font-bold text-gray-800"><i class="fa-solid fa-map-location-dot text-brand-alert mr-2"></i>Mapeo Situacional</h2>
-                        <div class="flex gap-2">
-                            <span class="text-[10px] border border-gray-200 rounded-full px-2 py-1 bg-gray-50"><span class="text-red-500">●</span> Zonas Críticas</span>
-                            <span class="text-[10px] border border-gray-200 rounded-full px-2 py-1 bg-gray-50"><span class="text-green-500">●</span> Acopio</span>
-                        </div>
-                    </div>
-                    <div class="p-2 flex-1">
-                        <div id="map"></div>
-                    </div>
-                </div>
-
-                <!-- COLUMNA FEED & NOTICIAS (Ocupa 1 espacio) -->
-                <div class="flex flex-col gap-6">
-                    
-                    <!-- Últimas Noticias Verificadas -->
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden h-[300px]">
-                        <div class="p-4 border-b border-gray-100 bg-gray-50">
-                            <h2 class="font-bold text-gray-800 text-sm"><i class="fa-solid fa-newspaper text-gray-500 mr-2"></i>Actualizaciones Oficiales</h2>
-                        </div>
-                        <div class="p-4 overflow-y-auto space-y-3 custom-scrollbar text-sm" id="news-feed">
-                            <!-- News Items -->
-                            <div class="border-l-2 border-blue-500 pl-3">
-                                <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1 rounded">OCHA / ONU</span>
-                                <p class="font-semibold text-gray-800 mt-1 leading-tight">Reporte de Situación N°11 confirma 6.462 rescatados.</p>
-                                <a href="https://reliefweb.int/" target="_blank" class="text-[10px] text-gray-400 hover:text-blue-500 block mt-1">Ver comunicado →</a>
-                            </div>
-                            <div class="border-l-2 border-gray-300 pl-3">
-                                <span class="text-[10px] font-bold text-gray-600 bg-gray-100 px-1 rounded">Reuters / EFE</span>
-                                <p class="font-semibold text-gray-800 mt-1 leading-tight">La cifra oficial de fallecidos asciende a 3.535 a dos semanas de la tragedia.</p>
-                                <span class="text-[10px] text-gray-400 block mt-1">Hace 2 horas</span>
-                            </div>
-                            <div class="border-l-2 border-amber-500 pl-3">
-                                <span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-1 rounded">OIM</span>
-                                <p class="font-semibold text-gray-800 mt-1 leading-tight">Hasta 6.7 millones de personas afectadas directa o indirectamente por el doble sismo.</p>
-                                <span class="text-[10px] text-gray-400 block mt-1">Hoy</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Canales de Donación (Abreviado en lateral) -->
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden flex-1">
-                        <div class="p-4 border-b border-gray-100 bg-green-50">
-                            <h2 class="font-bold text-green-800 text-sm"><i class="fa-solid fa-box-open mr-2"></i>Prioridad: Refugios</h2>
-                        </div>
-                        <div class="p-4 overflow-y-auto custom-scrollbar space-y-3">
-                            <p class="text-xs text-gray-600 mb-2">Más de 17,000 personas requieren apoyo sostenido. Utilice el botón superior "Apoyar" para ver los canales internacionales auditados.</p>
-                            
-                            <a href="https://donarseguro.com/dinero/direct-relief" target="_blank" class="block border border-gray-100 rounded p-2 hover:bg-gray-50 transition">
-                                <strong class="text-sm text-gray-800 block text-green-700">Ir a Direct Relief →</strong>
-                                <span class="text-[10px] text-gray-500">Fondo 100% dedicado.</span>
-                            </a>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
+    <section class="tabpanel" id="panel-noticias" role="tabpanel" hidden>
+      <div class="grid-main">
+        <div class="panel">
+          <div class="panel-head"><h2>Últimos informes</h2><span class="tag" id="feed-count">0</span></div>
+          <div class="feed" id="feed"></div>
         </div>
-    </main>
-
-    <!-- MODAL PDF -->
-    <div id="modal-export" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col">
-            <div class="p-5 border-b border-gray-100 flex justify-between items-center">
-                <h3 class="font-bold text-lg text-gray-800"><i class="fa-solid fa-file-pdf text-red-500 mr-2"></i> Reporte Institucional</h3>
-                <button onclick="toggleModal('modal-export')" class="text-gray-400 hover:text-gray-800"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            <div class="p-5 space-y-3 bg-gray-50 flex-1">
-                <p class="text-xs text-gray-600 mb-4">Se generará un documento formal con fuentes citadas para medios y autoridades.</p>
-                <label class="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded cursor-pointer hover:border-gray-300">
-                    <input type="checkbox" id="pdf-stats" checked class="mt-1 accent-red-500">
-                    <div>
-                        <strong class="text-sm text-gray-800 block">Cifras Contrastadas</strong>
-                        <span class="text-[10px] text-gray-500">Tabla comparativa Oficial vs ONGs.</span>
-                    </div>
-                </label>
-                <label class="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded cursor-pointer hover:border-gray-300">
-                    <input type="checkbox" id="pdf-map" checked class="mt-1 accent-red-500">
-                    <div>
-                        <strong class="text-sm text-gray-800 block">Captura Mapeo Situacional</strong>
-                        <span class="text-[10px] text-gray-500">Estado de zonas críticas en el momento.</span>
-                    </div>
-                </label>
-                <label class="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded cursor-pointer hover:border-gray-300">
-                    <input type="checkbox" id="pdf-context" checked class="mt-1 accent-red-500">
-                    <div>
-                        <strong class="text-sm text-gray-800 block">Contexto y Aclaratorias (Fake News)</strong>
-                        <span class="text-[10px] text-gray-500">Incluye los comunicados de UNICEF para frenar el pánico.</span>
-                    </div>
-                </label>
-            </div>
-            <div class="p-4 border-t border-gray-100 flex gap-3">
-                <button onclick="toggleModal('modal-export')" class="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-lg flex-1">Cancelar</button>
-                <button id="btn-gen" onclick="generarPDF()" class="px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg flex-1 shadow-sm">Descargar PDF</button>
-            </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Centros de acopio y ayuda</h2></div>
+          <div class="feed" id="aid"></div>
         </div>
+      </div>
+    </section>
+
+    <section class="tabpanel" id="panel-fuentes" role="tabpanel" hidden>
+      <div class="panel">
+        <div class="panel-head"><h2>Fuentes y medios de referencia</h2><span class="tag">curaduría · enlaces directos</span></div>
+        <div class="section-note">
+          Estas cuentas y medios se listan como <strong>fuentes citadas con enlace directo</strong>. La app no extrae ni almacena sus estadísticas internas: cada tarjeta redirige al perfil o medio original para que verifiques la información en su origen. La selección prioriza medios certificados y de cobertura equilibrada.
+        </div>
+        <div class="src-grid" id="srcgrid"></div>
+      </div>
+    </section>
+
+    <section class="tabpanel" id="panel-infancia" role="tabpanel" hidden>
+      <div class="panel">
+        <div class="panel-head"><h2>Protección de la infancia <span class="tag">alertas oficiales</span></h2></div>
+        <div class="section-note" id="child-framing">
+          No hay tráfico de niños confirmado por autoridades. Lo que existe son <strong>alertas de organismos serios</strong> (UNICEF, Cecodap, Save the Children) sobre el <strong>riesgo</strong> de separación familiar, trata y apropiación irregular, con llamados a activar salvaguardas. Se presenta como tal, con enlace a cada comunicado.
+        </div>
+        <div class="src-grid" id="childgrid"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-foot">
+    <strong>DataMonitorVE</strong> agrega y reordena información de fuentes públicas con atribución. Las cifras son <strong>preliminares y referenciales</strong>; cuando provienen de varias fuentes se muestra un promedio identificando su origen. Verifique siempre contra el comunicado oficial.<br />
+    Fuentes institucionales: ONU · Funvisis · USGS · Cruz Roja Venezolana · Protección Civil.
+  </footer>
+
+  <div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modal-title">Configurar reporte PDF</h3>
+        <p>Documento estructurado con fecha, pie institucional y sección de fuentes citadas.</p>
+      </div>
+      <div class="modal-body">
+        <label class="opt"><input type="checkbox" id="ex-stats" checked /><span><span class="opt-title">Estadísticas nacionales</span><br /><span class="opt-desc">Tabla con valor, fuente y si es promedio.</span></span></label>
+        <label class="opt"><input type="checkbox" id="ex-quake" checked /><span><span class="opt-title">Última réplica registrada (USGS)</span><br /><span class="opt-desc">Magnitud, ubicación y hora del feed oficial.</span></span></label>
+        <label class="opt"><input type="checkbox" id="ex-list" checked /><span><span class="opt-title">Estado del registro de desaparecidos</span><br /><span class="opt-desc">Cifra agregada citada + registros oficiales de búsqueda.</span></span></label>
+        <label class="opt"><input type="checkbox" id="ex-map" /><span><span class="opt-title">Captura del mapa</span><br /><span class="opt-desc">Imagen del estado actual del mapeo.</span></span></label>
+        <label class="opt"><input type="checkbox" id="ex-srcs" checked /><span><span class="opt-title">Fuentes y metodología</span><br /><span class="opt-desc">Origen de cada dato y cálculo de promedios.</span></span></label>
+        <label class="opt"><input type="checkbox" id="ex-donate" checked /><span><span class="opt-title">Canales de donación seguros</span><br /><span class="opt-desc">Organizaciones citadas desde donarseguro.com.</span></span></label>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-primary" id="btn-gen" onclick="generatePDF()">Generar PDF</button>
+        <button class="btn-ghost" onclick="closeModal()">Cancelar</button>
+      </div>
     </div>
+  </div>
 
-    <!-- MODAL DONAR -->
-    <div id="modal-donate" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 backdrop-blur-sm p-4">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col">
-            <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-green-50">
-                <h3 class="font-bold text-lg text-green-900"><i class="fa-solid fa-hand-holding-heart text-green-600 mr-2"></i> Canales de Donación Seguros</h3>
-                <button onclick="toggleModal('modal-donate')" class="text-gray-400 hover:text-green-800"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            <div class="p-5 space-y-3 bg-white flex-1 overflow-y-auto max-h-[60vh] custom-scrollbar">
-                <p class="text-xs text-gray-600 mb-4 bg-yellow-50 border border-yellow-200 p-2 rounded">
-                    La prioridad logística en este momento es el sustento de las <strong>+17,000 personas sin hogar</strong>. 
-                </p>
-                <p class="text-xs text-gray-600 mb-2">Selección de organizaciones auditadas internacionalmente, con cobro fuera de la banca local:</p>
-                
-                <a href="https://donarseguro.com/dinero/direct-relief" target="_blank" class="block bg-gray-50 border border-gray-200 rounded-lg p-3 hover:border-green-400 hover:shadow-sm transition-all">
-                    <strong class="text-sm text-green-700 block mb-0.5">Direct Relief</strong>
-                    <span class="text-[11px] text-gray-500">ONG médica de EE.UU. 100% del aporte es designado al evento sísmico.</span>
-                </a>
-                <a href="https://donarseguro.com/dinero/project-hope" target="_blank" class="block bg-gray-50 border border-gray-200 rounded-lg p-3 hover:border-green-400 hover:shadow-sm transition-all">
-                    <strong class="text-sm text-green-700 block mb-0.5">Project HOPE</strong>
-                    <span class="text-[11px] text-gray-500">Salud global y asistencia a refugiados. Llamado de donación específico para Venezuela.</span>
-                </a>
-                <a href="https://donarseguro.com/dinero/samaritans-purse" target="_blank" class="block bg-gray-50 border border-gray-200 rounded-lg p-3 hover:border-green-400 hover:shadow-sm transition-all">
-                    <strong class="text-sm text-green-700 block mb-0.5">Samaritan's Purse</strong>
-                    <span class="text-[11px] text-gray-500">Respuesta humanitaria rápida con hospitales de campaña y refugios.</span>
-                </a>
-                
-                <div class="mt-4 text-[10px] text-gray-400 text-center border-t border-gray-100 pt-3">
-                    Fuente de validación: Directorio <a href="https://donarseguro.com" target="_blank" class="font-bold underline text-gray-500">donarseguro.com</a>
-                </div>
-            </div>
-        </div>
+  <div class="modal-overlay" id="meth" role="dialog" aria-modal="true" aria-labelledby="meth-title">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="meth-title">Metodología y transparencia de datos</h3>
+        <p>De dónde sale cada cifra y cómo se calculan los promedios.</p>
+      </div>
+      <div class="modal-body" id="meth-body"></div>
+      <div class="modal-foot"><button class="btn-ghost" onclick="closeMeth()">Cerrar</button></div>
     </div>
+  </div>
 
-    <script>
-        // ==========================================
-        // 1. CONEXIÓN A TU BACKEND (Google Sheets)
-        // ==========================================
-        const DATA_URL = "https://script.google.com/macros/s/AKfycbwaj_ai4Re7qPX7ZlzzwIiYVjjtLvrH1QXnip2DVQMUuJ_Vj7snNslnnAL8jTJtC9Jn/exec";
+  <div class="modal-overlay" id="donate" role="dialog" aria-modal="true" aria-labelledby="donate-title">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="donate-title">Donar de forma segura</h3>
+        <p>Organizaciones con fondo dedicado al sismo y cobro auditado fuera de Venezuela.</p>
+      </div>
+      <div class="modal-body">
+        <div class="section-note" style="margin:0 0 14px;">
+          Selección de tres organizaciones que el directorio <strong>donarseguro.com</strong> describe con los criterios de seguridad más fuertes (fondo 100&nbsp;% dedicado, calificación de Charity Navigator, cobro fuera de la banca venezolana). <strong>No es un ranking oficial del sitio</strong>, que organiza por enfoque, no por puesto. Fuente citada abajo.
+        </div>
+        <div id="donate-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+        <div style="margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--ink-soft);line-height:1.6;">
+          Fuente: <a href="https://donarseguro.com/" target="_blank" rel="noopener">donarseguro.com</a> — directorio curado que no recibe dinero y redirige a canales oficiales. Verifica siempre en el dominio oficial de cada organización antes de donar.
+        </div>
+      </div>
+      <div class="modal-foot">
+        <a class="btn-primary" href="https://donarseguro.com/" target="_blank" rel="noopener" style="background:var(--green);text-align:center;text-decoration:none;">Ver el directorio completo ↗</a>
+        <button class="btn-ghost" onclick="closeDonate()">Cerrar</button>
+      </div>
+    </div>
+  </div>
 
-        // Reloj Superior
-        setInterval(() => {
-            document.getElementById('clock').innerText = new Date().toLocaleString("es-VE", {timeZone: "America/Caracas"}) + " VET";
-        }, 1000);
+<script>
+/* ================================================================
+   1. DATOS · Sismo doblete del 24-jun-2026 (Yaracuy, M7,2 y M7,5)
+   RESPALDO embebido: se muestra solo si la hoja (DATA_URL) no responde.
+   Mantenerlo al día evita mostrar cifras viejas si falla la conexión.
+   ================================================================ */
 
-        // Fetch de Datos Reales
-        async function loadData() {
-            try {
-                const res = await fetch(DATA_URL, { cache: "no-store" });
-                const data = await res.json();
-                
-                // Mapeo seguro a la UI si existen los datos en tu sheet
-                if(data.metrics) {
-                    if(data.metrics.fallecidos && data.metrics.fallecidos.sources[0]) {
-                        document.getElementById('ui-fallecidos').innerText = data.metrics.fallecidos.sources[0].value.toLocaleString('es-VE');
-                    }
-                    if(data.metrics.heridos && data.metrics.heridos.sources[0]) {
-                        document.getElementById('ui-heridos').innerText = data.metrics.heridos.sources[0].value.toLocaleString('es-VE');
-                    }
-                    if(data.metrics.desaparecidos && data.metrics.desaparecidos.sources[0]) {
-                        document.getElementById('ui-desaparecidos').innerText = "+" + data.metrics.desaparecidos.sources[0].value.toLocaleString('es-VE');
-                    }
-                    if(data.metrics['personas sin hogar'] && data.metrics['personas sin hogar'].sources[0]) {
-                        document.getElementById('ui-hogar').innerText = data.metrics['personas sin hogar'].sources[0].value.toLocaleString('es-VE');
-                    }
-                }
-                
-                // Carga de Framing Infantil desde tu JSON si existe
-                if(data.childProtection && data.childProtection.framing) {
-                    document.getElementById('ui-child-framing').innerText = data.childProtection.framing;
-                }
-            } catch (err) {
-                console.error("Usando datos locales de respaldo por fallo de red:", err);
-                // Si falla el internet, la UI mantiene los datos quemados en el HTML.
-            }
-        }
-        
-        loadData();
-        setInterval(loadData, 60000); // Refresca cada 1 minuto
+// URL de tu Apps Script (/exec) o del sources.json. La web la lee cada 60 s.
+const DATA_URL = "https://script.google.com/macros/s/AKfycbwaj_ai4Re7qPX7ZlzzwIiYVjjtLvrH1QXnip2DVQMUuJ_Vj7snNslnnAL8jTJtC9Jn/exec";
 
-        // ==========================================
-        // 2. INICIALIZACIÓN DEL MAPA (Leaflet)
-        // ==========================================
-        const map = L.map("map", { scrollWheelZoom: false }).setView([10.45, -67.5], 8);
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-            attribution: "© OpenStreetMap contributors"
-        }).addTo(map);
+// Cifras de respaldo (último parte oficial conocido, 28-jun-2026).
+const STATS = [
+  { key:"fallecidos", label:"Fallecidos", tone:"alert", cumulative:true,
+    sources:[ {name:"Gobierno VTV (Asamblea Nacional)", value:1450, official:true} ], asOf:"28 jun 2026", note:"Parte oficial (J. Rodríguez, VTV). Progresión: 164 → 235 → 589 → 920 → 1.430 → 1.450. USGS (PAGER) proyecta que el total final podría llegar a los miles." },
+  { key:"heridos", label:"Heridos", tone:"", cumulative:true,
+    sources:[ {name:"Gobierno VTV (Asamblea Nacional)", value:3150, official:true} ], asOf:"28 jun 2026", note:"Parte oficial. El Min. de Salud llegó a citar hasta ~4.300 atendidos en el sistema público." },
+  { key:"desaparecidos", label:"Desaparecidos", tone:"amber", cumulative:true,
+    sources:[ {name:"Registro colaborativo (Desaparecidos Terremoto VE)", value:52373, official:false} ], asOf:"26 jun 2026", note:"NO es un conteo oficial: nombres aún no localizados en un sitio ciudadano." },
+  { key:"edificaciones", label:"Edificaciones afectadas", tone:"green", cumulative:false,
+    sources:[ {name:"Reuters / ONU / CNN", value:250, official:false} ], asOf:"27 jun 2026", note:"Entre 100 y 250 edificios colapsados/dañados, sobre todo en La Guaira (zona de desastre)." },
+];
 
-        // Puntos Clave de la Emergencia
-        const points = [
-            { lat: 10.28, lng: -68.62, type: "red", title: "Epicentro M7.2", desc: "Yaracuy. Origen principal." },
-            { lat: 10.61, lng: -66.84, type: "red", title: "La Guaira - Zona Cero", desc: "Colapsos estructurales masivos." },
-            { lat: 10.50, lng: -66.90, type: "red", title: "Caracas - Afectación", desc: "Edificios residenciales caídos." },
-            { lat: 10.48, lng: -66.88, type: "green", title: "Punto Acopio UCV", desc: "Recepción de donaciones seguras." },
-            { lat: 10.16, lng: -68.00, type: "green", title: "Acopio Carabobo", desc: "Logística y traslados." }
-        ];
+const MAP_POINTS = [
+  { type:"alert", title:"Epicentro · sismo M7,2", loc:"23 km de San Felipe, Yaracuy", desc:"Prof. 20,3 km · 18:04 local", src:"USGS / Wikipedia", lat:10.28, lng:-68.62 },
+  { type:"alert", title:"Epicentro · sismo M7,5", loc:"28 km al SE de Yumare, Yaracuy", desc:"Prof. 10 km · 39 s después", src:"USGS / Wikipedia", lat:10.46, lng:-68.55 },
+  { type:"alert", title:"Edificios derrumbados", loc:"Caraballeda, La Guaira", desc:"Zona costera arrasada · búsqueda de víctimas", src:"CNN / Reuters", lat:10.611, lng:-66.847 },
+  { type:"alert", title:"Colapso de edificios · personas atrapadas", loc:"Los Palos Grandes, Caracas", desc:"Rescate entre escombros", src:"CNN / Infobae", lat:10.503, lng:-66.842 },
+  { type:"alert", title:"Daños estructurales alarmantes", loc:"Altamira, Caracas", desc:"Zona sísmica de la capital", src:"Infobae (Cabello)", lat:10.497, lng:-66.853 },
+  { type:"alert", title:"Daños en edificios residenciales", loc:"Caracas (centro-este)", desc:"Fachadas y estructuras comprometidas", src:"RTVC / EFE", lat:10.500, lng:-66.910 },
+  { type:"blue",  title:"Aeropuerto Int. Simón Bolívar", loc:"Maiquetía, La Guaira", desc:"Graves daños · cierre temporal", src:"CNN / Reuters", lat:10.601, lng:-66.991 },
+  { type:"alert", title:"La Guaira — zona de desastre", loc:"Estado La Guaira", desc:"Estado más afectado · a oscuras", src:"RTVC / Diócesis La Guaira", lat:10.598, lng:-66.736 },
+];
 
-        points.forEach(p => {
-            const color = p.type === 'red' ? '#ef4444' : '#10b981';
-            const icon = L.divIcon({
-                className: '',
-                html: `<div style="background-color:${color};width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>`,
-                iconSize: [14, 14]
-            });
-            L.marker([p.lat, p.lng], {icon}).bindPopup(`<strong>${p.title}</strong><br><span style="font-size:11px">${p.desc}</span>`).addTo(map);
-        });
+const REPORTS = [
+  { source:"web", title:"¿Qué se sabe del mayor terremoto en más de un siglo en Venezuela?", meta:"CNN en Español · 24 jun", url:"https://cnnespanol.cnn.com/2026/06/24/venezuela/terremoto-caracas-venezuela-trax" },
+  { source:"web", title:"Venezuela eleva a 1.450 los muertos por el doble terremoto", meta:"RTVE / VTV · 28 jun", url:"https://www.rtve.es/" },
+  { source:"web", title:"Dos fuertes terremotos de 7,2 y 7,5 sacuden Venezuela", meta:"Infobae · 24 jun", url:"https://www.infobae.com/venezuela/2026/06/24/un-terremoto-de-magnitud-71-sacudio-varias-regiones-de-venezuela-hay-alerta-de-tsunami-para-aruba-curazao-y-bonaire/" },
+  { source:"web", title:"Terremotos de Venezuela de 2026 — cronología y datos", meta:"Wikipedia (con fuentes citadas)", url:"https://es.wikipedia.org/wiki/Terremotos_de_Venezuela_de_2026" },
+  { source:"web", title:"SOS Venezuela 2026 — mapa colaborativo en vivo", meta:"Reportes de daños y desaparecidos", url:"https://sosvenezuela2026.com/" },
+];
 
-        // Truco para evitar que el mapa colapse
-        setTimeout(() => map.invalidateSize(), 500);
+const AID = [
+  { source:"web", title:"EE.UU. anuncia US$150 millones y equipos de rescate de élite", meta:"Depto. de Estado vía CNN", url:"https://cnnespanol.cnn.com/2026/06/24/venezuela/terremoto-caracas-venezuela-trax" },
+  { source:"web", title:"Equipos USAR internacionales desplegados (Países Bajos, Francia, España y más)", meta:"RTVC · 25 jun", url:"https://rtvc.es/terremoto-venezuela-minuto-a-minuto-ultima-hora-25-junio-2026/" },
+  { source:"web", title:"Canales de donación verificados para víctimas", meta:"donarseguro.com", url:"https://donarseguro.com/" },
+];
 
-        // ==========================================
-        // 3. UI Y PDF
-        // ==========================================
-        function toggleModal(id) {
-            const el = document.getElementById(id);
-            el.classList.toggle('hidden');
-            el.classList.toggle('flex');
-        }
+const MISSING_SUMMARY = {
+  desaparecidos:52373, asOf:"26 jun 2026", source:"Reuters (registro colaborativo)",
+  note:"Cifra de un registro ciudadano/colaborativo (no oficial): 62.593 nombres registrados, 52.373 sin localizar. Otra base independiente reporta +11.200 solo en La Guaira.",
+};
+const MISSING_REGISTRIES = [
+  { name:"Te Busco (tebusco.app)", note:"App para reportar y buscar familiares desaparecidos por el sismo.", url:"https://tebusco.app/" },
+  { name:"Red de Esperanza", note:"Plataforma de búsqueda de personas tras el sismo.", url:"https://red-de-esperanza-lime.vercel.app/" },
+  { name:"Desaparecidos Terremoto VE", note:"Directorio de búsqueda por nombre/cédula/teléfono.", url:"https://desaparecidosterremotovenezuela.com/" },
+  { name:"SOS Venezuela 2026", note:"Mapa colaborativo con buscador de personas y avisos en vivo.", url:"https://sosvenezuela2026.com/" },
+];
 
-        async function generarPDF() {
-            const btn = document.getElementById("btn-gen");
-            btn.disabled = true; 
-            btn.innerText = "Procesando...";
+const SOURCES = [
+  { name:"USGS", type:"API oficial", verif:true, desc:"Servicio sismológico de EE.UU. Réplicas en tiempo real para la zona de Venezuela.", url:"https://earthquake.usgs.gov/earthquakes/map/" },
+  { name:"Funvisis", type:"Oficial VE", verif:true, desc:"Fundación Venezolana de Investigaciones Sismológicas. Reportes sísmicos nacionales.", url:"https://www.funvisis.gob.ve/" },
+  { name:"ONU / OCHA", type:"Organismo", verif:true, desc:"Coordinación humanitaria y cifras de impacto.", url:"https://www.unocha.org/" },
+  { name:"Cruz Roja Venezolana", type:"Organismo", verif:true, desc:"Atención, heridos y campañas de donación.", url:"https://www.cruzrojavenezolana.org/" },
+  { name:"Reuters", type:"Agencia", verif:true, desc:"Agencia internacional de cobertura equilibrada.", url:"https://www.reuters.com/" },
+  { name:"EFE", type:"Agencia", verif:true, desc:"Agencia española con cobertura en Latinoamérica.", url:"https://efe.com/" },
+  { name:"The New York Times", type:"Diario", verif:true, desc:"Cobertura internacional certificada.", url:"https://www.nytimes.com/" },
+  { name:"BBC Mundo", type:"Diario", verif:true, desc:"Servicio en español de la BBC.", url:"https://www.bbc.com/mundo" },
+  { name:"El País", type:"Diario (ES)", verif:true, desc:"Diario español de referencia.", url:"https://elpais.com/" },
+  { name:"El Tiempo", type:"Diario (CO)", verif:true, desc:"Diario colombiano de referencia.", url:"https://www.eltiempo.com/" },
+  { name:"Desaparecidos Terremoto VE", type:"Registro ciudadano", verif:false, desc:"Sitio ciudadano de búsqueda. Se enlaza como fuente; no se ingieren sus datos.", url:"https://desaparecidosterremotovenezuela.com/" },
+  { name:"Te Busco", type:"Búsqueda de personas", verif:false, desc:"App para reportar y localizar familiares desaparecidos tras el sismo.", url:"https://tebusco.app/" },
+  { name:"Red de Esperanza", type:"Búsqueda de personas", verif:false, desc:"Plataforma ciudadana de búsqueda de personas tras el sismo.", url:"https://red-de-esperanza-lime.vercel.app/" },
+  { name:"SOS Venezuela 2026", type:"Mapa colaborativo", verif:false, desc:"Mapa en vivo de daños, colapsos y desaparecidos (reportes + USGS). Coordenadas aproximadas por protección anti-saqueo.", url:"https://sosvenezuela2026.com/" },
+  { name:"CNN en Español", type:"Medio", verif:true, desc:"Cobertura en vivo del sismo del 24-jun-2026.", url:"https://cnnespanol.cnn.com/" },
+  { name:"Infobae", type:"Medio", verif:true, desc:"Cobertura del doblete sísmico y declaraciones oficiales.", url:"https://www.infobae.com/venezuela/" },
+  { name:"donarseguro.com", type:"Directorio de ayuda", verif:true, desc:"Directorio curado de organizaciones legítimas para donar tras el sismo. No recibe dinero; redirige a canales oficiales.", url:"https://donarseguro.com/" },
+];
 
-            try {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({ format: "a4" });
-                const fecha = new Date().toLocaleString("es-VE");
-                
-                // Cabecera institucional
-                doc.setFillColor(15, 23, 42); doc.rect(0,0, 600, 60, "F");
-                doc.setTextColor(255); doc.setFont("helvetica", "bold"); doc.setFontSize(16);
-                doc.text("DataMonitorVE - Reporte de Situación", 20, 35);
-                doc.setFontSize(9); doc.setFont("helvetica", "normal");
-                doc.text(`Corte de información: ${fecha}`, 20, 50);
+let QUAKE = null;
 
-                let y = 80;
+const DONATIONS = [
+  { name:"Direct Relief", focus:"Salud y medicina",
+    why:"ONG médica de EE.UU. descrita como muy sólida y transparente, con fondo dedicado al terremoto y 100 % del aporte designado al evento.",
+    url:"https://donarseguro.com/dinero/direct-relief" },
+  { name:"Project HOPE", focus:"Salud y medicina",
+    why:"ONG de salud global (501c3, 4 estrellas en Charity Navigator) ya desplegada, con llamado de donación específico para Venezuela en su dominio oficial.",
+    url:"https://donarseguro.com/dinero/project-hope" },
+  { name:"Samaritan's Purse", focus:"Respuesta humanitaria",
+    why:"ONG con cuatro estrellas en Charity Navigator, fondo dedicado al terremoto y cobro 100 % fuera de Venezuela.",
+    url:"https://donarseguro.com/dinero/samaritans-purse" },
+];
 
-                // Datos Estadísticos
-                if (document.getElementById("pdf-stats").checked) {
-                    doc.setTextColor(0); doc.setFontSize(12); doc.setFont("helvetica", "bold");
-                    doc.text("Resumen de Cifras Contrastadas", 20, y);
-                    
-                    doc.autoTable({
-                        startY: y + 10,
-                        head: [["Métrica", "Cifra", "Fuente / Estado"]],
-                        body: [
-                            ["Fallecidos Confirmados", document.getElementById('ui-fallecidos').innerText, "Oficial (Autoridades / OCHA)"],
-                            ["Heridos Estimados", document.getElementById('ui-heridos').innerText, "Hospitales y Triaje"],
-                            ["Desaparecidos", document.getElementById('ui-desaparecidos').innerText, "Registro Ciudadano (Brecha crítica)"],
-                            ["Personas sin Hogar", document.getElementById('ui-hogar').innerText, "Refugios confirmados"]
-                        ],
-                        theme: 'striped', headStyles: { fillColor: [239, 68, 68] }
-                    });
-                    y = doc.lastAutoTable.finalY + 20;
-                }
+/* 2. PROMEDIOS CON PROVENIENCIA (incl. oficial vs independiente) */
+function computeStat(s){
+  const vals = s.sources.map(x => x.value);
+  const isAvg = vals.length > 1;
+  const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
+  const shown = s.cumulative && s.sources[0] ? s.sources[0].value : (isAvg ? Math.round(avg) : vals[0]);
+  const off = s.sources.filter(x=>x.official).map(x=>x.value);
+  const ind = s.sources.filter(x=>!x.official).map(x=>x.value);
+  const m = a => a.length ? Math.round(a.reduce((x,y)=>x+y,0)/a.length) : null;
+  return { ...s, isAvg, avg, shown,
+    officialAvg:m(off), independentAvg:m(ind),
+    min: Math.min(...vals), max: Math.max(...vals) };
+}
+let STATS_C = STATS.map(computeStat);
+function fmtNum(n){ return (n==null?"—":n.toLocaleString("es-VE")); }
 
-                // Contexto Fake News
-                if (document.getElementById("pdf-context").checked) {
-                    doc.setTextColor(0); doc.setFontSize(12); doc.setFont("helvetica", "bold");
-                    doc.text("Aclaratoria: Protección Infantil y Rumores", 20, y);
-                    
-                    doc.setFontSize(9); doc.setFont("helvetica", "normal");
-                    const txt = doc.splitTextToSize(document.getElementById('ui-child-framing').innerText, 170);
-                    doc.text(txt, 20, y + 15);
-                    y += 15 + (txt.length * 5) + 15;
-                }
+/* 3. RENDER de tarjetas de cifras */
+function renderStats(){
+  document.getElementById("stats").innerHTML = STATS_C.map(s => `
+    <div class="stat ${s.tone ? "is-"+s.tone : ""}">
+      <div class="label">${s.label}</div>
+      <div class="value">${fmtNum(s.shown)}</div>
+      <div class="src">
+        ${s.sources.length>1 ? `<span class="avg-pill">${s.sources.length} FUENTES · rango ${fmtNum(s.min)}–${fmtNum(s.max)}</span>` : ""}
+        ${s.sources.slice(0,3).map(x=>x.name).join(" · ")}${s.asOf ? ` · al ${s.asOf}` : ""}
+      </div>
+      ${(s.officialAvg!=null && s.independentAvg!=null)
+        ? `<div class="src" style="color:#6c4cd6">Oficial: ${fmtNum(s.officialAvg)} · Independientes: ${fmtNum(s.independentAvg)}</div>` : ""}
+      <span class="why" onclick="openMeth('${s.key}')">¿De dónde sale este dato?</span>
+    </div>`).join("");
+}
+function renderStatsLoading(){
+  document.getElementById("stats").innerHTML = STATS.map(s => `
+    <div class="stat loading ${s.tone ? "is-"+s.tone : ""}">
+      <div class="label">${s.label}</div>
+      <div class="value">···</div>
+      <div class="src">Cargando cifras actualizadas…</div>
+    </div>`).join("");
+}
 
-                // Mapa
-                if (document.getElementById("pdf-map").checked) {
-                    // Verificamos si cabe en la página actual
-                    if (y > 200) { doc.addPage(); y = 30; }
-                    
-                    doc.setTextColor(0); doc.setFontSize(12); doc.setFont("helvetica", "bold");
-                    doc.text("Mapeo de Zonas Críticas", 20, y);
-                    
-                    const canvas = await html2canvas(document.getElementById("map"), { useCORS: true, scale: 1.5 });
-                    const imgData = canvas.toDataURL("image/png");
-                    doc.addImage(imgData, "PNG", 20, y + 10, 170, 100);
-                }
+/* Render del resto (informes, fuentes) */
+function renderRest(){
+  const icons = {
+    instagram:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
+    tiktok:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 3a5 5 0 0 0 5 5v3a8 8 0 0 1-5-1.7V16a6 6 0 1 1-6-6v3a3 3 0 1 0 3 3V3z"/></svg>',
+    web:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
+    x:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h3l-7 8 8 12h-6l-5-7-5 7H1l8-9L1 2h6l4 6z"/></svg>'
+  };
+  const labels = { instagram:"Instagram", tiktok:"TikTok", web:"Web oficial", x:"X / Prensa" };
+  const card = r => `
+    <div class="report s-${r.source}">
+      <div class="report-top"><span class="badge b-${r.source}">${icons[r.source]} ${labels[r.source]}</span></div>
+      <h4>${r.title}</h4>
+      <div class="meta">${r.meta}</div>
+      <div style="margin-top:7px;"><a class="go" href="${r.url}" target="_blank" rel="noopener noreferrer">Ir a la fuente →</a></div>
+    </div>`;
+  document.getElementById("feed").innerHTML = REPORTS.map(card).join("");
+  document.getElementById("aid").innerHTML  = AID.map(card).join("");
+  document.getElementById("feed-count").textContent = REPORTS.length;
+  document.getElementById("t-news").textContent = REPORTS.length + AID.length;
 
-                // Pie de página legal
-                doc.setFontSize(8); doc.setTextColor(150);
-                doc.text("Documento generado automáticamente. Cifras referenciales extraídas de fuentes públicas y ONGs.", 20, 285);
+  document.getElementById("srcgrid").innerHTML = SOURCES.map(s => `
+    <div class="src-card">
+      <div class="sc-top"><h4>${s.name}</h4><span class="sc-type ${s.verif?"verif":""}">${s.type}</span></div>
+      <div class="sc-desc">${s.desc}</div>
+      <a class="sc-link" href="${s.url}" target="_blank" rel="noopener noreferrer">Abrir fuente ↗</a>
+    </div>`).join("");
+  document.getElementById("t-srcs").textContent = SOURCES.length;
+}
+renderRest();
 
-                doc.save(`SismoVE_Reporte_${new Date().getTime()}.pdf`);
-                toggleModal('modal-export');
-                
-            } catch (err) {
-                console.error("Fallo al generar PDF", err);
-                btn.innerText = "Error. Reintente.";
-                setTimeout(() => { btn.innerText = "Descargar PDF"; btn.disabled = false; }, 3000);
-            } else {
-                btn.innerText = "Descargar PDF"; btn.disabled = false;
-            }
-        }
-    </script>
+/* 3b. PROTECCIÓN INFANTIL */
+let CHILD = {
+  framing: "No hay tráfico de niños confirmado por autoridades. Existen alertas de organismos serios sobre el RIESGO de separación familiar, trata y apropiación irregular, con llamados a activar salvaguardas.",
+  items: [
+    { org:"UNICEF", type:"Organismo ONU", summary:"Estima 3,9 millones de niños, niñas y adolescentes en zonas afectadas; advierte que los desastres aumentan el riesgo de separación familiar y pide acompañamiento psicosocial y espacios seguros.", url:"https://www.unicef.org/lac/comunicados-prensa/miles-ninos-ninas-riesgo-tras-fuertes-terremotos-venezuela" },
+    { org:"Cecodap", type:"ONG de infancia (VE)", summary:"La urgencia no puede justificar procedimientos que aumenten el riesgo de desaparición, tráfico, trata o apropiación irregular; pide suspender adopciones/separaciones definitivas mientras no se agote la localización de familiares.", url:"https://www.diariolasamericas.com/la-otra-emergencia-venezuela-reunir-los-ninos-sus-familiares-los-terremotos-n5397852" },
+    { org:"Save the Children", type:"ONG internacional", summary:"Coincide con UNICEF: los desastres incrementan el riesgo de separación familiar; exige protocolos específicos para proteger a la infancia desde las primeras horas.", url:"https://www.savethechildren.org/" }
+  ]
+};
+function renderChild(){
+  const f = document.getElementById("child-framing"); if(f) f.innerHTML = CHILD.framing;
+  document.getElementById("childgrid").innerHTML = CHILD.items.map(it => `
+    <div class="src-card" style="border-left:4px solid var(--alert)">
+      <div class="sc-top"><h4>${it.org}</h4><span class="sc-type">${it.type}</span></div>
+      <div class="sc-desc">${it.summary}</div>
+      <a class="sc-link" href="${it.url}" target="_blank" rel="noopener noreferrer">Comunicado / fuente ↗</a>
+    </div>`).join("");
+  document.getElementById("t-child").textContent = CHILD.items.length;
+}
+renderChild();
+
+/* 3c. LECTOR REMOTO: primero carga la hoja; solo usa el respaldo si falla.
+   Así NO se ven cifras viejas al abrir. */
+async function loadRemote(){
+  if(!DATA_URL){ renderStats(); return; }   // sin URL → muestra respaldo
+  try{
+    const r = await fetch(DATA_URL, { cache:"no-store" });
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const d = await r.json();
+    if(d.metrics && Object.keys(d.metrics).length){
+      STATS_C = Object.entries(d.metrics).map(([key,m]) => computeStat({
+        key, label:m.label, tone:({fallecidos:"alert",heridos:"",desaparecidos:"amber",edificaciones:"green"}[key]||""),
+        cumulative:m.cumulative, note:m.note||"",
+        asOf:(m.sources && m.sources[0] && m.sources[0].updatedAt ? new Date(m.sources[0].updatedAt).toLocaleDateString("es-VE"):""),
+        sources:(m.sources||[]).slice().sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt))
+          .map(s=>({ name:s.name, value:s.value, official:!!s.official, url:s.url }))
+      }));
+    }
+    if(d.childProtection && d.childProtection.items && d.childProtection.items.length){ CHILD = d.childProtection; renderChild(); }
+    renderStats();
+  }catch(e){
+    console.warn("Hoja no disponible, usando respaldo:", e.message);
+    renderStats();   // respaldo (cifras embebidas al día)
+  }
+}
+renderStatsLoading();   // muestra "cargando" en vez de cifras viejas
+loadRemote();
+setInterval(loadRemote, 60000);
+
+/* 4. PESTAÑAS */
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected","false"));
+    tab.setAttribute("aria-selected","true");
+    document.querySelectorAll(".tabpanel").forEach(p => p.hidden = true);
+    document.getElementById("panel-" + tab.dataset.tab).hidden = false;
+    if(tab.dataset.tab === "mapa") setTimeout(()=>map.invalidateSize(), 60);
+  });
+});
+
+/* Menú desplegable Buscar desaparecidos */
+function toggleBuscar(e){
+  if(e) e.stopPropagation();
+  document.getElementById("buscar-menu").classList.toggle("open");
+}
+document.addEventListener("click", e => {
+  if(!e.target.closest(".dropdown")){
+    const m = document.getElementById("buscar-menu"); if(m) m.classList.remove("open");
+  }
+});
+
+/* 5. MAPA */
+const map = L.map("map", { scrollWheelZoom:false }).setView([10.0, -66.5], 7);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { crossOrigin:true, attribution:"© OpenStreetMap", maxZoom:18 }).addTo(map);
+function pinIcon(type){ return L.divIcon({ className:"", html:`<div class="pin p-${type}"></div>`, iconSize:[18,18], iconAnchor:[9,18], popupAnchor:[0,-16] }); }
+const layers = { alert:L.layerGroup(), amber:L.layerGroup(), blue:L.layerGroup(), violet:L.layerGroup() };
+MAP_POINTS.forEach(p => {
+  L.marker([p.lat,p.lng],{icon:pinIcon(p.type)})
+    .bindPopup(`<strong>${p.title}</strong><br>${p.loc}<br><span style="color:#666">${p.desc}</span>${p.src?`<br><span style="color:#6c4cd6;font-family:monospace;font-size:11px">Fuente: ${p.src}</span>`:""}`)
+    .addTo(layers[p.type]);
+});
+Object.values(layers).forEach(l => l.addTo(map));
+document.querySelectorAll("#filters .chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    const key = chip.dataset.layer, on = chip.getAttribute("aria-pressed")==="true";
+    chip.setAttribute("aria-pressed", String(!on));
+    if(on) map.removeLayer(layers[key]); else layers[key].addTo(map);
+  });
+});
+setTimeout(()=>map.invalidateSize(), 200);
+
+/* 6. USGS · RÉPLICAS EN VIVO */
+const VE_BBOX = { minlat:0.5, maxlat:13.0, minlng:-73.5, maxlng:-59.5 };
+async function fetchQuakes(){
+  const start = new Date(Date.now() - 30*24*3600*1000).toISOString();
+  const url = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&eventtype=earthquake"
+            + `&starttime=${start}&minlatitude=${VE_BBOX.minlat}&maxlatitude=${VE_BBOX.maxlat}`
+            + `&minlongitude=${VE_BBOX.minlng}&maxlongitude=${VE_BBOX.maxlng}&orderby=time&limit=25`;
+  try{
+    const res = await fetch(url);
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data = await res.json();
+    const feats = data.features || [];
+    if(feats.length){
+      const f = feats[0], p = f.properties, c = f.geometry.coordinates;
+      QUAKE = { mag:p.mag, place:p.place, time:p.time, url:p.url, depth:c[2] };
+      document.getElementById("q-mag").textContent   = (p.mag!=null ? "M"+p.mag.toFixed(1) : "M—");
+      document.getElementById("q-title").textContent = p.place || "Evento registrado";
+      const t = new Date(p.time).toLocaleString("es-VE",{ dateStyle:"medium", timeStyle:"short" });
+      document.getElementById("q-sub").textContent   = `${t} · prof. ${c[2]!=null?c[2].toFixed(0):"—"} km · feed oficial USGS`;
+      document.getElementById("q-link").href = p.url || "https://earthquake.usgs.gov/earthquakes/map/";
+    } else {
+      document.getElementById("q-title").textContent = "Sin réplicas recientes registradas en la zona";
+      document.getElementById("q-sub").textContent = "Últimos 30 días · feed oficial USGS";
+    }
+    layers.violet.clearLayers();
+    feats.forEach(f => {
+      const p = f.properties, c = f.geometry.coordinates;
+      L.marker([c[1],c[0]],{icon:pinIcon("violet")})
+        .bindPopup(`<strong>M ${p.mag!=null?p.mag.toFixed(1):"—"}</strong> · ${p.place||""}<br>${new Date(p.time).toLocaleString("es-VE")}<br><a href="${p.url}" target="_blank" rel="noopener">Detalle en USGS ↗</a>`)
+        .addTo(layers.violet);
+    });
+  }catch(err){
+    console.error("USGS:", err);
+    document.getElementById("q-title").textContent = "No se pudo consultar el feed de USGS";
+    document.getElementById("q-sub").textContent = "Reintentando… verifique conexión";
+  }
+}
+fetchQuakes();
+setInterval(fetchQuakes, 60000);
+
+/* 7. RELOJ · hora de Venezuela (America/Caracas, UTC-4) */
+function tick(){
+  const t = new Date().toLocaleTimeString("es-VE", { timeZone:"America/Caracas", hour12:false });
+  document.getElementById("clock").textContent = t + " VET";
+}
+tick(); setInterval(tick,1000);
+
+/* 8. MODALES */
+function openModal(){ document.getElementById("modal").classList.add("open"); }
+function closeModal(){ document.getElementById("modal").classList.remove("open"); }
+function closeMeth(){ document.getElementById("meth").classList.remove("open"); }
+function closeDonate(){ document.getElementById("donate").classList.remove("open"); }
+function openDonate(){
+  document.getElementById("donate-list").innerHTML = DONATIONS.map(d => `
+    <div class="src-card" style="border-left:4px solid var(--green);">
+      <div class="sc-top"><h4>${d.name}</h4><span class="sc-type verif">${d.focus}</span></div>
+      <div class="sc-desc">${d.why}</div>
+      <a class="sc-link" href="${d.url}" target="_blank" rel="noopener noreferrer" style="color:var(--green)">Ver ficha y donar ↗</a>
+    </div>`).join("");
+  document.getElementById("donate").classList.add("open");
+}
+function openMeth(focusKey){
+  const body = document.getElementById("meth-body");
+  const statRows = STATS_C.map(s => `
+    <div class="meth-row" ${focusKey===s.key?'style="border-color:var(--alert)"':""}>
+      <div class="mr-label">${s.label}: <span style="font-family:var(--mono)">${fmtNum(s.shown)}</span>${s.asOf?` <span style="color:#8a93a1;font-weight:400">(corte: ${s.asOf})</span>`:""}</div>
+      ${s.isAvg
+        ? `<div class="mr-calc">Promedio de ${s.sources.length} fuentes = (${s.sources.map(x=>fmtNum(x.value)).join(" + ")}) / ${s.sources.length}</div>
+           <div class="mr-srcs">Origen: ${s.sources.map(x=>`${x.name} (${fmtNum(x.value)})`).join(" · ")}</div>`
+        : `<div class="mr-srcs">Fuente: ${s.sources[0].name} (${fmtNum(s.sources[0].value)})</div>`}
+      ${s.note?`<div class="mr-srcs" style="color:#8a93a1">${s.note}</div>`:""}
+    </div>`).join("");
+  const quakeRow = QUAKE
+    ? `<div class="meth-row"><div class="mr-label">Última réplica: M${QUAKE.mag!=null?QUAKE.mag.toFixed(1):"—"} · ${QUAKE.place||""}</div><div class="mr-srcs">Origen: USGS (feed FDSN, en vivo). Consulta directa a la API oficial, sin intermediarios.</div></div>`
+    : `<div class="meth-row"><div class="mr-srcs">Réplicas: feed oficial de USGS (en vivo).</div></div>`;
+  body.innerHTML = `
+    <div class="meth-block">
+      <h4>Principio de transparencia</h4>
+      <div class="meth-row" style="background:#f6f8fa">
+        Esta plataforma <strong>no extrae datos privados ni raspa contenido de terceros</strong>. Integra: (1) la API pública de USGS para réplicas, y (2) datos de impacto por <strong>curaduría con cita</strong> de medios serios. Las cifras de víctimas son <strong>acumulativas</strong>: no se promedian (promediar conteos de distintas horas sería incorrecto), se reporta la más reciente con fuente y fecha de corte. Cuando varias fuentes estiman <em>la misma magnitud</em> de forma independiente, sí se promedia y se detalla su composición. Los perfiles de redes y medios se enlazan a su origen, no se almacenan sus métricas.
+      </div>
+    </div>
+    <div class="meth-block"><h4>Estadísticas y su origen</h4>${statRows}</div>
+    <div class="meth-block"><h4>Actividad sísmica</h4>${quakeRow}</div>
+    <div class="meth-block"><h4>Fuentes de referencia (${SOURCES.length})</h4>
+      <div class="mr-srcs" style="font-size:11.5px">${SOURCES.map(s=>s.name).join(" · ")}</div>
+    </div>`;
+  document.getElementById("meth").classList.add("open");
+}
+["modal","meth","donate"].forEach(id => document.getElementById(id).addEventListener("click", e => { if(e.target.id===id) e.currentTarget.classList.remove("open"); }));
+document.addEventListener("keydown", e => { if(e.key==="Escape"){ closeModal(); closeMeth(); closeDonate(); } });
+
+/* 9. PDF */
+async function generatePDF(){
+  const btn = document.getElementById("btn-gen");
+  btn.disabled = true; btn.textContent = "Generando…";
+  try{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit:"pt", format:"a4" });
+    const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+    const now = new Date();
+    const fecha = now.toLocaleString("es-VE",{ dateStyle:"long", timeStyle:"short" });
+    const ALERT=[214,35,58], INK=[20,23,28], SOFT=[120,128,140];
+
+    function header(){
+      doc.setFillColor(...INK); doc.rect(0,0,W,70,"F");
+      doc.setDrawColor(...ALERT); doc.setLineWidth(3); doc.line(0,70,W,70);
+      doc.setDrawColor(...ALERT); doc.setLineWidth(1.5); doc.roundedRect(40,18,34,34,5,5,"S");
+      doc.setTextColor(255); doc.setFont("courier","bold"); doc.setFontSize(15); doc.text("VE",57,40,{align:"center"});
+      doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.text("DataMonitorVE — Reporte Oficial de Situación",86,33);
+      doc.setFont("courier","normal"); doc.setFontSize(8.5); doc.setTextColor(180,186,196);
+      doc.text("Emergencia Sismo 2026 · Documento generado automáticamente",86,47);
+      doc.text("Fecha de emisión: "+fecha,86,59);
+    }
+    function footer(pageNum, total){
+      doc.setDrawColor(216,221,227); doc.setLineWidth(.5); doc.line(40,H-46,W-40,H-46);
+      doc.setFont("courier","normal"); doc.setFontSize(7.5); doc.setTextColor(...SOFT);
+      doc.text("Fuentes institucionales: ONU · Funvisis · USGS · Cruz Roja Venezolana · Protección Civil.",40,H-32);
+      doc.text("Cifras preliminares y referenciales — verificar contra el comunicado oficial original.",40,H-22);
+      doc.text("Pág. "+pageNum+" de "+total, W-40, H-22, {align:"right"});
+    }
+    const opts = {
+      margin:{ top:88, bottom:60, left:40, right:40 },
+      styles:{ font:"helvetica", fontSize:9.5, cellPadding:6, lineColor:[224,228,233], lineWidth:.5 },
+      headStyles:{ fillColor:INK, textColor:255, font:"courier", fontStyle:"bold", fontSize:9 },
+      alternateRowStyles:{ fillColor:[245,247,249] }
+    };
+    let y = 92;
+    const title = (txt) => { if(y > H-140){ doc.addPage(); y=92; } doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(...INK); doc.text(txt,40,y); y+=8; };
+
+    if(document.getElementById("ex-stats").checked){
+      doc.autoTable({ ...opts, startY:y,
+        head:[["Indicador","Valor","Corte","Fuente(s)"]],
+        body: STATS_C.map(s => [ s.label, fmtNum(s.shown), s.asOf||"—", s.sources.map(x=>x.name).join(", ") ]) });
+      y = doc.lastAutoTable.finalY + 22;
+    }
+    if(document.getElementById("ex-quake").checked){
+      title("Última réplica registrada (USGS, en vivo)");
+      const body = QUAKE
+        ? [["Magnitud", "M "+(QUAKE.mag!=null?QUAKE.mag.toFixed(1):"—")],["Ubicación", QUAKE.place||"—"],
+           ["Fecha/hora", new Date(QUAKE.time).toLocaleString("es-VE")],["Profundidad",(QUAKE.depth!=null?QUAKE.depth.toFixed(0):"—")+" km"],["Fuente","USGS · feed FDSN oficial"]]
+        : [["Estado","Sin réplicas recientes en la zona / feed no disponible"]];
+      doc.autoTable({ ...opts, startY:y+6, head:[["Campo","Valor"]], body });
+      y = doc.lastAutoTable.finalY + 22;
+    }
+    if(document.getElementById("ex-list").checked){
+      title("Personas desaparecidas — estado del registro");
+      doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...INK);
+      const mtxt = doc.splitTextToSize(`Cifra agregada: ${fmtNum(MISSING_SUMMARY.desaparecidos)} personas reportadas como desaparecidas (fuente: ${MISSING_SUMMARY.source}, corte: ${MISSING_SUMMARY.asOf}). ${MISSING_SUMMARY.note} Esta plataforma no publica un listado de nombres sin verificar; la búsqueda por nombre o cédula se realiza en los registros especializados:`, W-80);
+      doc.text(mtxt,40,y+8); y += 8 + mtxt.length*12 + 8;
+      doc.autoTable({ ...opts, startY:y, head:[["Registro de búsqueda","Cómo usarlo","Enlace"]],
+        body: MISSING_REGISTRIES.map(r => [ r.name, r.note, r.url ]) });
+      y = doc.lastAutoTable.finalY + 22;
+    }
+    if(document.getElementById("ex-map").checked){
+      try{
+        const canvas = await html2canvas(document.getElementById("map"),{ useCORS:true, allowTaint:false, scale:2 });
+        const img = canvas.toDataURL("image/png");
+        title("Estado del mapeo de afectación");
+        const imgW = W-80, imgH = canvas.height*(imgW/canvas.width);
+        if(y+Math.min(imgH,300) > H-70){ doc.addPage(); y=92; }
+        doc.addImage(img,"PNG",40,y+10,imgW,Math.min(imgH,300));
+        y += Math.min(imgH,300)+30;
+      }catch(err){
+        doc.setFont("courier","normal"); doc.setFontSize(8.5); doc.setTextColor(...SOFT);
+        doc.text("No fue posible capturar el mapa (restricción de tiles).",40,y+14); y+=30;
+      }
+    }
+    if(document.getElementById("ex-srcs").checked){
+      doc.addPage(); y=92;
+      title("Fuentes y metodología");
+      doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...INK);
+      const intro = doc.splitTextToSize("Esta plataforma no extrae datos privados ni raspa contenido de terceros. Integra la API pública de USGS para réplicas y datos de impacto por curaduría con cita de medios serios. Las cifras de víctimas son acumulativas: no se promedian (promediar conteos de distintas horas sería incorrecto); se reporta la más reciente con su fuente y fecha de corte.", W-80);
+      doc.text(intro,40,y+8); y += 8 + intro.length*12 + 10;
+      doc.autoTable({ ...opts, startY:y,
+        head:[["Indicador","Cálculo / composición y progresión"]],
+        body: STATS_C.map(s => [ s.label, (s.isAvg
+          ? `Promedio de ${s.sources.length}: (${s.sources.map(x=>fmtNum(x.value)).join(" + ")})/${s.sources.length} = ${fmtNum(s.shown)} · ${s.sources.map(x=>x.name).join(", ")}`
+          : `${s.sources[0].name} = ${fmtNum(s.shown)} (corte: ${s.asOf||"—"})`) + (s.note?`. ${s.note}`:"") ]),
+        columnStyles:{ 1:{ cellWidth: W-80-150 } } });
+      y = doc.lastAutoTable.finalY + 18;
+      title("Fuentes de referencia citadas");
+      doc.autoTable({ ...opts, startY:y+6,
+        head:[["Fuente","Tipo","Enlace"]],
+        body: SOURCES.map(s => [ s.name, s.type, s.url ]),
+        styles:{ ...opts.styles, fontSize:8.5 } });
+      y = doc.lastAutoTable.finalY + 22;
+    }
+
+    if(document.getElementById("ex-donate").checked){
+      title("Canales de donación seguros");
+      doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...INK);
+      const dintro = doc.splitTextToSize("Selección de organizaciones que el directorio donarseguro.com describe con los criterios de seguridad más fuertes (fondo dedicado al sismo, calificación de Charity Navigator, cobro fuera de la banca venezolana). No constituye un ranking oficial. Fuente: donarseguro.com. Verifique en el dominio oficial de cada organización antes de donar.", W-80);
+      doc.text(dintro,40,y+8); y += 8 + dintro.length*12 + 8;
+      doc.autoTable({ ...opts, startY:y,
+        head:[["Organización","Enfoque","Por qué se incluye","Enlace"]],
+        body: DONATIONS.map(d => [ d.name, d.focus, d.why, d.url ]),
+        styles:{ ...opts.styles, fontSize:8 },
+        columnStyles:{ 2:{ cellWidth: 200 } } });
+    }
+
+    const total = doc.internal.getNumberOfPages();
+    for(let i=1;i<=total;i++){ doc.setPage(i); header(); footer(i,total); }
+
+    doc.save("Reporte_SismoVE_2026_"+now.toISOString().slice(0,10)+".pdf");
+    closeModal();
+  }catch(err){ alert("Error al generar el PDF. Revise la consola."); console.error(err); }
+  finally{ btn.disabled=false; btn.textContent="Generar PDF"; }
+}
+</script>
 </body>
 </html>
